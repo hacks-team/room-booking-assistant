@@ -13,7 +13,15 @@ interface ReservationCardProps {
   onCancel?: () => void;
 }
 
-export const ReservationCard = ({ name, date, startTime, endTime, capacity, equipments, onCancel }: ReservationCardProps) => {
+export const ReservationCard = ({
+  name,
+  date,
+  startTime,
+  endTime,
+  capacity,
+  equipments,
+  onCancel,
+}: ReservationCardProps) => {
   return (
     <Card>
       <CardContent>
@@ -51,4 +59,4 @@ export const ReservationCard = ({ name, date, startTime, endTime, capacity, equi
       </CardContent>
     </Card>
   );
-}
+};

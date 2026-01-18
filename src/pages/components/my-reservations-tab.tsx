@@ -11,9 +11,24 @@ export function MyReservationsTab() {
         <p className="mt-2 text-xs">예약 조회/취소 로직을 구현해보세요.</p>
       </div>
       */}
-      <ReservationCard name="회의실 1" date="2026-01-18" startTime="10:00" endTime="11:00" capacity={4} equipments={["tv"]} onCancel={() => { }} />
-      <ReservationCard name="회의실 2" date="2026-01-18" startTime="10:00" endTime="11:00" capacity={4} equipments={["tv", "whiteboard"]} onCancel={() => { }} />
+      <ReservationCard
+        name="회의실 1"
+        date="2026-01-18"
+        startTime="10:00"
+        endTime="11:00"
+        capacity={4}
+        equipments={["tv"]}
+        onCancel={() => {}}
+      />
+      <ReservationCard
+        name="회의실 2"
+        date="2026-01-18"
+        startTime="10:00"
+        endTime="11:00"
+        capacity={4}
+        equipments={["tv", "whiteboard"]}
+        onCancel={() => {}}
+      />
     </div>
   );
 }
-

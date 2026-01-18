@@ -1,6 +1,4 @@
 import { http, HttpResponse } from "msw";
-import { hasTimeConflict } from "@/lib/booking-utils";
-import type { Reservation } from "@/lib/types";
 import { delay, reservations, rooms } from "./data";
 
 const isValidReservationRequest = (body: Partial<Reservation> & { start?: string; end?: string; attendees?: number }) =>
@@ -60,7 +58,7 @@ export const handlers = [
         start: body.start!,
         end: body.end!,
         attendees: body.attendees!,
-        equipment: body.equipment || [],
+        equipments: body.equipments || [],
         userId: "user-1",
       };
 
@@ -97,3 +95,38 @@ export const handlers = [
     return HttpResponse.json(myReservations);
   }),
 ];
+
+function hasTimeConflict(existingStart: string, existingEnd: string, newStart: string, newEnd: string): boolean {
+  const existingStartMin = timeToMinutes(existingStart);
+  const existingEndMin = timeToMinutes(existingEnd);
+  const newStartMin = timeToMinutes(newStart);
+  const newEndMin = timeToMinutes(newEnd);
+
+  return newStartMin < existingEndMin && newEndMin > existingStartMin;
+}
+
+function timeToMinutes(time: string): number {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+type Equipment = "tv" | "whiteboard" | "video" | "speaker";
+
+type Room = {
+  id: string;
+  name: string;
+  floor: number;
+  capacity: number;
+  equipments: Equipment[];
+};
+
+type Reservation = {
+  id: string;
+  roomId: string;
+  date: string;
+  start: string;
+  end: string;
+  attendees: number;
+  equipments: Equipment[];
+  userId?: string;
+};

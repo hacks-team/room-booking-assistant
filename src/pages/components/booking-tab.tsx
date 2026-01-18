@@ -1,8 +1,6 @@
 import { Tv, Presentation, Video, Volume2, Building2, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-import { TIME_SLOTS } from "@/lib/booking-utils";
-
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,8 +43,8 @@ export function BookingTab() {
         <CardContent>
           <DateField label="날짜" />
           <InputField label="참석 인원" placeholder="1" type="number" min={1} />
-          <SelectField label="시작 시간" options={TIME_SLOTS.map((time) => ({ label: time, value: time }))} />
-          <SelectField label="종료 시간" options={TIME_SLOTS.map((time) => ({ label: time, value: time }))} />
+          <SelectField label="시작 시간" options={[]} />
+          <SelectField label="종료 시간" options={[]} />
           <SelectField
             label="선호 층 (선택)"
             options={[

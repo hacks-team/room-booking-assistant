@@ -3,7 +3,11 @@ import { createBrowserRouter, Navigate, Outlet, RouterProvider } from "react-rou
 
 const router = createBrowserRouter([
   {
-    element: <Outlet />,
+    element: (
+      <main className="mx-auto max-w-7xl px-4 py-8">
+        <Outlet />
+      </main>
+    ),
     children: [
       {
         path: "/",

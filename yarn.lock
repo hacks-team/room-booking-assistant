@@ -5401,6 +5401,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"ky@npm:^1.14.2":
+  version: 1.14.2
+  resolution: "ky@npm:1.14.2"
+  checksum: 10c0/ea5f08660ec8574ad6b116338059d1f2bac42ee917d56df268758405edfb3d17d5baa78913ee289eb6de976f648b1ff7798d5f8a7732c61e85e59d8f10f16795
+  languageName: node
+  linkType: hard
+
 "language-subtag-registry@npm:^0.3.20":
   version: 0.3.23
   resolution: "language-subtag-registry@npm:0.3.23"
@@ -6669,6 +6676,7 @@ __metadata:
     eslint-plugin-react-hooks: "npm:^7.0.1"
     globals: "npm:^17.0.0"
     input-otp: "npm:1.4.1"
+    ky: "npm:^1.14.2"
     lucide-react: "npm:^0.454.0"
     msw: "npm:^2.12.7"
     postcss: "npm:^8.5"
