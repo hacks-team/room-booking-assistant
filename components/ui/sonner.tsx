@@ -5,9 +5,7 @@ import { Toaster as Sonner, type ToasterProps } from "sonner";
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const theme: ToasterProps["theme"] =
-    typeof document !== "undefined" && document.documentElement.classList.contains("dark")
-      ? "dark"
-      : "light";
+    typeof document !== "undefined" && document.documentElement.classList.contains("dark") ? "dark" : "light";
 
   return (
     <Sonner

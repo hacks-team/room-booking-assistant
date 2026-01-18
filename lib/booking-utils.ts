@@ -11,12 +11,7 @@ export function minutesToTime(minutes: number): string {
   return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}`;
 }
 
-export function hasTimeConflict(
-  existingStart: string,
-  existingEnd: string,
-  newStart: string,
-  newEnd: string,
-): boolean {
+export function hasTimeConflict(existingStart: string, existingEnd: string, newStart: string, newEnd: string): boolean {
   const existingStartMin = timeToMinutes(existingStart);
   const existingEndMin = timeToMinutes(existingEnd);
   const newStartMin = timeToMinutes(newStart);
@@ -46,9 +41,7 @@ export function isRoomAvailable(
 
   // Check time conflicts
   const roomReservations = reservations.filter((r) => r.roomId === room.id && r.date === date);
-  const hasConflict = roomReservations.some((r) =>
-    hasTimeConflict(r.start, r.end, startTime, endTime),
-  );
+  const hasConflict = roomReservations.some((r) => hasTimeConflict(r.start, r.end, startTime, endTime));
 
   return !hasConflict;
 }
@@ -112,16 +105,7 @@ export function findAlternativeRooms(
   return rooms
     .filter((room) => room.id !== excludeRoomId)
     .filter((room) =>
-      isRoomAvailable(
-        room,
-        reservations,
-        date,
-        startTime,
-        endTime,
-        attendees,
-        requiredEquipment,
-        preferredFloor,
-      ),
+      isRoomAvailable(room, reservations, date, startTime, endTime, attendees, requiredEquipment, preferredFloor),
     )
     .slice(0, maxRooms);
 }

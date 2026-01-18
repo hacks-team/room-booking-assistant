@@ -3,9 +3,8 @@ import { hasTimeConflict } from "@/lib/booking-utils";
 import type { Reservation } from "@/lib/types";
 import { delay, reservations, rooms } from "./data";
 
-const isValidReservationRequest = (
-  body: Partial<Reservation> & { start?: string; end?: string; attendees?: number },
-) => body.roomId && body.date && body.start && body.end && body.attendees;
+const isValidReservationRequest = (body: Partial<Reservation> & { start?: string; end?: string; attendees?: number }) =>
+  body.roomId && body.date && body.start && body.end && body.attendees;
 
 export const handlers = [
   http.get("/api/rooms", async () => {
@@ -69,10 +68,7 @@ export const handlers = [
 
       return HttpResponse.json({ ok: true, reservation: newReservation });
     } catch {
-      return HttpResponse.json(
-        { ok: false, code: "INVALID", message: "잘못된 요청입니다." },
-        { status: 400 },
-      );
+      return HttpResponse.json({ ok: false, code: "INVALID", message: "잘못된 요청입니다." }, { status: 400 });
     }
   }),
 
@@ -82,19 +78,13 @@ export const handlers = [
     const id = params.id as string | undefined;
 
     if (!id) {
-      return HttpResponse.json(
-        { ok: false, code: "INVALID", message: "잘못된 요청입니다." },
-        { status: 400 },
-      );
+      return HttpResponse.json({ ok: false, code: "INVALID", message: "잘못된 요청입니다." }, { status: 400 });
     }
 
     const index = reservations.findIndex((reservation) => reservation.id === id);
 
     if (index === -1) {
-      return HttpResponse.json(
-        { ok: false, code: "NOT_FOUND", message: "예약을 찾을 수 없습니다." },
-        { status: 404 },
-      );
+      return HttpResponse.json({ ok: false, code: "NOT_FOUND", message: "예약을 찾을 수 없습니다." }, { status: 404 });
     }
 
     reservations.splice(index, 1);
