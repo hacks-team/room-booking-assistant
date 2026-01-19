@@ -1,17 +1,27 @@
-import { Tv, Presentation, Video, Volume2, Building2, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { SuspenseQueries, SuspenseQuery } from "@suspensive/react-query";
 import { Button } from "@/components/ui/button";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { InputField } from "@/components/input-field";
-import { SubCard, SubCardContent, SubCardHeader } from "@/components/ui/sub-card";
 import { SelectField } from "@/components/select-field";
 import { DateField } from "@/components/date-field";
 import { RoomSelect } from "./room-select";
+import { getRoomsQuertOptions, postRoomReservation } from "@/src/remotes/room";
+import { getReservationsQuertOptions } from "@/src/remotes/reservation";
+import { format } from "date-fns";
+import { useBookingSearchParams } from "../RoomBookingPage/hooks/use-booking-search-params";
+import { useState, useTransition } from "react";
+import { TIME_SELECT_OPTIONS } from "@/src/constant";
+import { groupBy } from "es-toolkit";
+import { Room } from "@/src/types";
+import { isCapacityAvailable, isEquipmentAvailable, isFloorAvailable, isTimeAvailable } from "@/src/domain/reservation";
+import { RoomReservationList } from "./room-reservation-list";
+import { EquipmentToggleGroup } from "./equipment-toggle-group";
 
 export function BookingTab() {
+  const { filters, updateFilters } = useBookingSearchParams();
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [isPending, startTransition] = useTransition();
+
   return (
     <div className="space-y-6">
       <Card>
@@ -19,20 +29,12 @@ export function BookingTab() {
           <CardTitle>예약 현황</CardTitle>
         </CardHeader>
         <CardContent>
-          <DateField label="날짜 선택" />
-          <SubCard>
-            <SubCardHeader>회의실 1</SubCardHeader>
-            <SubCardContent>
-              <Badge variant="outline">10:00 - 11:00</Badge>
-              <Badge variant="outline">10:00 - 11:00</Badge>
-            </SubCardContent>
-          </SubCard>
-          <SubCard>
-            <SubCardHeader>회의실 2</SubCardHeader>
-            <SubCardContent>
-              <p className="text-muted-foreground text-sm">예약 없음</p>
-            </SubCardContent>
-          </SubCard>
+          <DateField
+            value={new Date(filters.date)}
+            onSelect={(date) => updateFilters({ date: format(date ?? new Date(), "yyyy-MM-dd") })}
+            label="날짜 선택"
+          />
+          <RoomReservationList date={filters.date} />
         </CardContent>
       </Card>
 
@@ -41,42 +43,52 @@ export function BookingTab() {
           <CardTitle>예약 조건</CardTitle>
         </CardHeader>
         <CardContent>
-          <DateField label="날짜" />
-          <InputField label="참석 인원" placeholder="1" type="number" min={1} />
-          <SelectField label="시작 시간" options={[]} />
-          <SelectField label="종료 시간" options={[]} />
-          <SelectField
-            label="선호 층 (선택)"
-            options={[
-              { label: "전체", value: "all" },
-              { label: "회의실 A", value: "room-1" },
-              { label: "회의실 B", value: "room-2" },
-              { label: "대회의실", value: "room-3" },
-              { label: "소회의실", value: "room-4" },
-            ]}
+          {/* 여긴 그냥 폼으로 하는게 나을듯 */}
+          <DateField
+            label="날짜"
+            value={new Date(filters.date)}
+            onSelect={(date) => updateFilters({ date: format(date ?? new Date(), "yyyy-MM-dd") })}
           />
-
-          <div className="space-y-2">
-            <Label>필요 장비</Label>
-            <ToggleGroup type="multiple" variant="outline" spacing={2} size="sm">
-              <ToggleGroupItem value="tv">
-                <Tv className="h-4 w-4" />
-                TV
-              </ToggleGroupItem>
-              <ToggleGroupItem value="whiteboard">
-                <Presentation className="h-4 w-4" />
-                화이트보드
-              </ToggleGroupItem>
-              <ToggleGroupItem value="video">
-                <Video className="h-4 w-4" />
-                화상회의
-              </ToggleGroupItem>
-              <ToggleGroupItem value="speaker">
-                <Volume2 className="h-4 w-4" />
-                스피커
-              </ToggleGroupItem>
-            </ToggleGroup>
-          </div>
+          <InputField
+            label="참석 인원"
+            placeholder="1"
+            type="number"
+            min={1}
+            value={filters.attendees}
+            onValueChange={(value) => updateFilters({ attendees: parseInt(value) })}
+          />
+          <SelectField
+            label="시작 시간"
+            options={TIME_SELECT_OPTIONS}
+            value={filters.startTime ?? undefined}
+            onValueChange={(value) => updateFilters({ startTime: value })}
+          />
+          <SelectField
+            label="종료 시간"
+            options={TIME_SELECT_OPTIONS}
+            value={filters.endTime ?? undefined}
+            onValueChange={(value) => updateFilters({ endTime: value })}
+          />
+          <SuspenseQuery {...getRoomsQuertOptions()}>
+            {({ data: rooms }) => (
+              <SelectField
+                label="선호 층 (선택)"
+                options={[
+                  { label: "전체", value: "all" },
+                  ...Object.keys(groupBy(rooms, (room) => room.floor)).map((floor) => ({
+                    label: `${floor}층`,
+                    value: floor,
+                  })),
+                ]}
+                value={filters.floor ?? undefined}
+                onValueChange={(value) => updateFilters({ floor: value })}
+              />
+            )}
+          </SuspenseQuery>
+          <EquipmentToggleGroup
+            values={filters.equipments ?? []}
+            onValueChange={(values) => updateFilters({ equipments: values })}
+          />
         </CardContent>
       </Card>
 
@@ -85,9 +97,58 @@ export function BookingTab() {
           <CardTitle>예약 가능한 회의실</CardTitle>
         </CardHeader>
         <CardContent>
-          <RoomSelect selected name="회의실 1" floor={1} capacity={4} equipments={["tv", "whiteboard"]} />
-          <RoomSelect name="회의실 2" floor={1} capacity={4} equipments={["tv", "whiteboard"]} />
-          <Button size="lg">예약하기</Button>
+          <SuspenseQueries queries={[getRoomsQuertOptions(), getReservationsQuertOptions(filters.date)]}>
+            {([{ data: rooms }, { data: reservations }]) => {
+              const reservationMap = new Map(
+                Object.entries(groupBy(reservations, (reservation) => reservation.roomId)),
+              );
+              const availableRooms = rooms
+                .filter((room) => isCapacityAvailable(room, filters.attendees))
+                .filter((room) => isEquipmentAvailable(room, filters.equipments ?? []))
+                .filter((room) => isFloorAvailable(room, filters.floor ?? "all"))
+                .filter((room) =>
+                  isTimeAvailable(filters.startTime ?? "", filters.endTime ?? "", reservationMap.get(room.id) ?? []),
+                );
+
+              return (
+                <>
+                  {availableRooms.map((room) => {
+                    return (
+                      <RoomSelect
+                        selected={selectedRoom?.id === room.id}
+                        name={room.name}
+                        floor={room.floor}
+                        capacity={room.capacity}
+                        equipments={room.equipments}
+                        onSelect={() => setSelectedRoom(room)}
+                      />
+                    );
+                  })}
+                </>
+              );
+            }}
+          </SuspenseQueries>
+          <Button
+            size="lg"
+            disabled={isPending}
+            onClick={() => {
+              if (!selectedRoom) return;
+              startTransition(() => {
+                if (selectedRoom) {
+                  postRoomReservation({
+                    roomId: selectedRoom.id,
+                    date: filters.date,
+                    start: filters.startTime ?? "",
+                    end: filters.endTime ?? "",
+                    attendees: filters.attendees,
+                    equipment: filters.equipments ?? [],
+                  });
+                }
+              });
+            }}
+          >
+            예약하기
+          </Button>
         </CardContent>
       </Card>
     </div>
