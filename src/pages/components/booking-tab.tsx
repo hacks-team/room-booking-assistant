@@ -1,6 +1,7 @@
 import { Tv, Presentation, Video, Volume2, Building2, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ky from "ky";
+import { parseAsIsoDate, useQueryState } from 'nuqs'
 
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -59,8 +60,9 @@ const useReservations = (date: string) => {
 }
 
 export function BookingTab() {
+  const [date, setDate] = useQueryState('date', parseAsIsoDate.withDefault(new Date()));
   const { data: rooms } = useMeetingRooms();
-  const { data: reservations } = useReservations(format(new Date(), "yyyy-MM-dd"));
+  const { data: reservations } = useReservations(format(date, "yyyy-MM-dd"));
 
   return (
     <div className="space-y-6">
@@ -69,9 +71,9 @@ export function BookingTab() {
           <CardTitle>예약 현황</CardTitle>
         </CardHeader>
 
-        <Suspense fallback={<div>Loading...</div>}>
-          <CardContent>
-            <DateField label="날짜 선택" />
+        <CardContent>
+          <DateField label="날짜 선택" value={date} onSelect={(date) => setDate(date ?? new Date())} />
+          <Suspense fallback={<div>Loading...</div>}>
             {rooms.map((room) => {
               const roomReservations = reservations.filter((reservation) => reservation.roomId === room.id);
 
@@ -90,8 +92,8 @@ export function BookingTab() {
                 </SubCard>
               );
             })}
-          </CardContent>
-        </Suspense>
+          </Suspense>
+        </CardContent>
       </Card>
 
       <Card>
