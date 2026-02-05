@@ -1,5 +1,6 @@
 import { Tv, Presentation, Video, Volume2, Building2, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import ky from "ky";
 
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -10,30 +11,87 @@ import { SubCard, SubCardContent, SubCardHeader } from "@/components/ui/sub-card
 import { SelectField } from "@/components/select-field";
 import { DateField } from "@/components/date-field";
 import { RoomSelect } from "./room-select";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { format } from "date-fns";
+import { Suspense } from "react";
+
+type Equipment = "tv" | "whiteboard" | "video" | "speaker";
+
+type Room = {
+  id: string;
+  name: string;
+  floor: number;
+  capacity: number;
+  equipments: Equipment[];
+}
+
+type Reservation = {
+  id: string;
+  roomId: string;
+  date: string;
+  start: string;
+  end: string;
+  attendees: number;
+  equipments: Equipment[];
+  userId?: string;
+}
+
+const getMeetingRooms = () => {
+  return ky.get("/api/rooms").json<Room[]>();
+}
+
+const getReservations = (date: string) => {
+  return ky.get(`/api/reservations?date=${date}`).json<Reservation[]>();
+}
+
+const useMeetingRooms = () => {
+  return useSuspenseQuery({
+    queryKey: ["meeting-rooms"],
+    queryFn: () => getMeetingRooms(),
+  })
+}
+
+const useReservations = (date: string) => {
+  return useSuspenseQuery({
+    queryKey: ["reservations", date],
+    queryFn: () => getReservations(date),
+  })
+}
 
 export function BookingTab() {
+  const { data: rooms } = useMeetingRooms();
+  const { data: reservations } = useReservations(format(new Date(), "yyyy-MM-dd"));
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>예약 현황</CardTitle>
         </CardHeader>
-        <CardContent>
-          <DateField label="날짜 선택" />
-          <SubCard>
-            <SubCardHeader>회의실 1</SubCardHeader>
-            <SubCardContent>
-              <Badge variant="outline">10:00 - 11:00</Badge>
-              <Badge variant="outline">10:00 - 11:00</Badge>
-            </SubCardContent>
-          </SubCard>
-          <SubCard>
-            <SubCardHeader>회의실 2</SubCardHeader>
-            <SubCardContent>
-              <p className="text-muted-foreground text-sm">예약 없음</p>
-            </SubCardContent>
-          </SubCard>
-        </CardContent>
+
+        <Suspense fallback={<div>Loading...</div>}>
+          <CardContent>
+            <DateField label="날짜 선택" />
+            {rooms.map((room) => {
+              const roomReservations = reservations.filter((reservation) => reservation.roomId === room.id);
+
+              return (
+                <SubCard key={room.id}>
+                  <SubCardHeader>{room.name}</SubCardHeader>
+                  <SubCardContent>
+                    {roomReservations.length > 0 ? (
+                      roomReservations.map((reservation) => (
+                        <Badge key={reservation.id} variant="outline">{`${reservation.start} - ${reservation.end}`}</Badge>
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground text-sm">예약 없음</p>
+                    )}
+                  </SubCardContent>
+                </SubCard>
+              );
+            })}
+          </CardContent>
+        </Suspense>
       </Card>
 
       <Card>
