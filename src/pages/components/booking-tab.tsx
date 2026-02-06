@@ -2,6 +2,7 @@ import { Tv, Presentation, Video, Volume2, Building2, Users } from "lucide-react
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ky from "ky";
 import { parseAsIsoDate, useQueryState } from 'nuqs'
+import { SuspenseQueries } from '@suspensive/react-query'
 
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -12,8 +13,8 @@ import { SubCard, SubCardContent, SubCardHeader } from "@/components/ui/sub-card
 import { SelectField } from "@/components/select-field";
 import { DateField } from "@/components/date-field";
 import { RoomSelect } from "./room-select";
-import { useSuspenseQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
+import { queryOptions } from "@tanstack/react-query";
 import { Suspense } from "react";
 
 type Equipment = "tv" | "whiteboard" | "video" | "speaker";
@@ -46,14 +47,14 @@ const getReservations = (date: string) => {
 }
 
 const useMeetingRooms = () => {
-  return useSuspenseQuery({
+  return queryOptions({
     queryKey: ["meeting-rooms"],
     queryFn: () => getMeetingRooms(),
   })
 }
 
 const useReservations = (date: string) => {
-  return useSuspenseQuery({
+  return queryOptions({
     queryKey: ["reservations", date],
     queryFn: () => getReservations(date),
   })
@@ -61,8 +62,6 @@ const useReservations = (date: string) => {
 
 export function BookingTab() {
   const [date, setDate] = useQueryState('date', parseAsIsoDate.withDefault(new Date()));
-  const { data: rooms } = useMeetingRooms();
-  const { data: reservations } = useReservations(format(date, "yyyy-MM-dd"));
 
   return (
     <div className="space-y-6">
@@ -74,24 +73,32 @@ export function BookingTab() {
         <CardContent>
           <DateField label="날짜 선택" value={date} onSelect={(date) => setDate(date ?? new Date())} />
           <Suspense fallback={<div>Loading...</div>}>
-            {rooms.map((room) => {
-              const roomReservations = reservations.filter((reservation) => reservation.roomId === room.id);
+            <SuspenseQueries queries={[useMeetingRooms(), useReservations(format(date, "yyyy-MM-dd"))]}>
+              {([{ data: rooms }, { data: reservations }]) => {
+                return (
+                  <>
+                    {rooms.map((room) => {
+                      const roomReservations = reservations.filter((reservation) => reservation.roomId === room.id);
 
-              return (
-                <SubCard key={room.id}>
-                  <SubCardHeader>{room.name}</SubCardHeader>
-                  <SubCardContent>
-                    {roomReservations.length > 0 ? (
-                      roomReservations.map((reservation) => (
-                        <Badge key={reservation.id} variant="outline">{`${reservation.start} - ${reservation.end}`}</Badge>
-                      ))
-                    ) : (
-                      <p className="text-muted-foreground text-sm">예약 없음</p>
-                    )}
-                  </SubCardContent>
-                </SubCard>
-              );
-            })}
+                      return (
+                        <SubCard key={room.id}>
+                          <SubCardHeader>{room.name}</SubCardHeader>
+                          <SubCardContent>
+                            {roomReservations.length > 0 ? (
+                              roomReservations.map((reservation) => (
+                                <Badge key={reservation.id} variant="outline">{`${reservation.start} - ${reservation.end}`}</Badge>
+                              ))
+                            ) : (
+                              <p className="text-muted-foreground text-sm">예약 없음</p>
+                            )}
+                          </SubCardContent>
+                        </SubCard>
+                      );
+                    })}
+                  </>
+                );
+              }}
+            </SuspenseQueries>
           </Suspense>
         </CardContent>
       </Card>

@@ -19,8 +19,8 @@ async function bootstrap() {
       <QueryClientProvider client={queryClient}>
         <NuqsAdapter>
           <Routes />
+          <Toaster />
         </NuqsAdapter>
-        <Toaster />
       </QueryClientProvider>
     </React.StrictMode>,
   );
