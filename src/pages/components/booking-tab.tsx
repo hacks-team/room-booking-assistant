@@ -39,7 +39,6 @@ type Reservation = {
   end: string;
   attendees: number;
   equipments: Equipment[];
-  userId?: string;
 }
 
 const getMeetingRooms = () => {
@@ -65,16 +64,10 @@ const useReservations = (date: string) => {
 }
 
 const timeToMinutes = (time: string): number => {
+  if (!time) return 0;
   const [hours, minutes] = time.split(":").map(Number);
   return hours * 60 + minutes;
 };
-
-const BUSINESS_HOURS = {
-  START: "09:00",
-  END: "20:00",
-  START_MINUTES: 9 * 60,
-  END_MINUTES: 20 * 60,
-} as const;
 
 const generateTimeOptions = (
   startHour: number,
@@ -109,19 +102,11 @@ const generateFloorOptions = (): Array<{ label: string; value: string }> => {
 
 const bookingSchema = z.object({
   date: z.string().datetime(),
-  startTime: z.string()
-    .regex(/^\d{2}:\d{2}$/, "올바른 시간 형식이 아닙니다 (예: 09:00)")
-    .refine((time) => {
-      const minutes = timeToMinutes(time);
-      return minutes >= BUSINESS_HOURS.START_MINUTES && minutes <= BUSINESS_HOURS.END_MINUTES;
-    }, `시작 시간은 ${BUSINESS_HOURS.START} ~ ${BUSINESS_HOURS.END} 사이여야 합니다`),
-  endTime: z.string()
-    .regex(/^\d{2}:\d{2}$/, "올바른 시간 형식이 아닙니다 (예: 10:00)")
-    .refine((time) => {
-      const minutes = timeToMinutes(time);
-      return minutes >= BUSINESS_HOURS.START_MINUTES && minutes <= BUSINESS_HOURS.END_MINUTES;
-    }, `종료 시간은 ${BUSINESS_HOURS.START} ~ ${BUSINESS_HOURS.END} 사이여야 합니다`),
-  attendees: z.number().min(1, "1명 이상이어야 합니다"),
+  startTime: z.string(),
+  endTime: z.string(),
+  attendees: z.coerce.number({
+    invalid_type_error: "숫자를 입력해주세요",
+  }).min(1, "1명 이상이어야 합니다"),
   equipments: z.array(z.enum(["tv", "whiteboard", "video", "speaker"])).optional(),
   floor: z.string().optional(),
 }).refine((data) => {
@@ -137,6 +122,7 @@ type BookingFormData = z.infer<typeof bookingSchema>;
 
 export function BookingTab() {
   const [reservationStateDate, setReservationStateDate] = useQueryState('date', parseAsIsoDate.withDefault(new Date()));
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
 
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
@@ -208,17 +194,26 @@ export function BookingTab() {
             )}
           />
 
-          <InputField
-            label="참석 인원"
-            type="number"
-            min={1}
-            {...form.register("attendees", { valueAsNumber: true })}
+          <Controller
+            name="attendees"
+            control={form.control}
+            render={({ field }) => (
+              <div>
+                <InputField
+                  label="참석 인원"
+                  type="number"
+                  min={1}
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+                {form.formState.errors.attendees && (
+                  <p className="text-destructive text-sm mt-1">
+                    {form.formState.errors.attendees.message}
+                  </p>
+                )}
+              </div>
+            )}
           />
-          {form.formState.errors.attendees && (
-            <p className="text-destructive text-sm mt-1">
-              {form.formState.errors.attendees.message}
-            </p>
-          )}
 
           <Controller
             name="startTime"
@@ -318,8 +313,37 @@ export function BookingTab() {
           <CardTitle>예약 가능한 회의실</CardTitle>
         </CardHeader>
         <CardContent>
-          <RoomSelect selected name="회의실 1" floor={1} capacity={4} equipments={["tv", "whiteboard"]} />
-          <RoomSelect name="회의실 2" floor={1} capacity={4} equipments={["tv", "whiteboard"]} />
+          <Suspense fallback={<div>Loading...</div>}>
+            <SuspenseQueries queries={[useMeetingRooms(), useReservations(format(reservationStateDate, "yyyy-MM-dd"))]}>
+              {([{ data: rooms }, { data: reservations }]) => {
+                const availableRooms = rooms.filter((room) => {
+                  const capacityMatch = room.capacity >= form.watch("attendees");
+                  const equipmentMatch = form.watch("equipments")?.every((equipment) => room.equipments.includes(equipment as Equipment));
+                  const selectedFloor = form.watch("floor");
+                  const floorMatch = selectedFloor === "all" || room.floor === Number(selectedFloor);
+
+                  const reservationMatch = reservations.find((reservation) => reservation.roomId === room.id);
+
+                  if (reservationMatch) {
+                    const reservationTimeMatch = timeToMinutes(reservationMatch?.start ?? "") >= timeToMinutes(form.watch("endTime")) || timeToMinutes(reservationMatch?.end ?? "") <= timeToMinutes(form.watch("startTime"));
+                    if (!reservationTimeMatch) {
+                      return false;
+                    }
+                  }
+
+                  return floorMatch && capacityMatch && equipmentMatch;
+                });
+
+                return (
+                  <>
+                    {availableRooms.map((room) => (
+                      <RoomSelect key={room.id} name={room.name} floor={room.floor} capacity={room.capacity} equipments={room.equipments} onSelect={() => setSelectedRoom(room as Room)} selected={selectedRoom?.id === room.id} />
+                    ))}
+                  </>
+                );
+              }}
+            </SuspenseQueries>
+          </Suspense>
           <Button size="lg">예약하기</Button>
         </CardContent>
       </Card>
