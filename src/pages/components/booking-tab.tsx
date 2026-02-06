@@ -1,6 +1,10 @@
 import { Tv, Presentation, Video, Volume2, Building2, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ky from "ky";
+import { z } from "zod";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
 import { parseAsIsoDate, useQueryState } from 'nuqs'
 import { SuspenseQueries } from '@suspensive/react-query'
 
@@ -15,7 +19,7 @@ import { DateField } from "@/components/date-field";
 import { RoomSelect } from "./room-select";
 import { format } from "date-fns";
 import { queryOptions } from "@tanstack/react-query";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 
 type Equipment = "tv" | "whiteboard" | "video" | "speaker";
 
@@ -60,8 +64,92 @@ const useReservations = (date: string) => {
   })
 }
 
+const timeToMinutes = (time: string): number => {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+};
+
+const BUSINESS_HOURS = {
+  START: "09:00",
+  END: "20:00",
+  START_MINUTES: 9 * 60,
+  END_MINUTES: 20 * 60,
+} as const;
+
+const generateTimeOptions = (
+  startHour: number,
+  endHour: number,
+  intervalMinutes: number = 30
+): Array<{ label: string; value: string }> => {
+  const options: Array<{ label: string; value: string }> = [];
+
+  for (let hour = startHour; hour <= endHour; hour++) {
+    for (let minute = 0; minute < 60; minute += intervalMinutes) {
+      if (hour === endHour && minute > 0) break;
+
+      const timeString = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
+      options.push({
+        label: timeString,
+        value: timeString,
+      });
+    }
+  }
+
+  return options;
+};
+
+const generateFloorOptions = (): Array<{ label: string; value: string }> => {
+  const options: Array<{ label: string; value: string }> = [];
+  options.push({ label: "전체", value: "all" });
+  for (let i = 1; i <= 10; i++) {
+    options.push({ label: `${i}층`, value: i.toString() });
+  }
+  return options;
+};
+
+const bookingSchema = z.object({
+  date: z.string().datetime(),
+  startTime: z.string()
+    .regex(/^\d{2}:\d{2}$/, "올바른 시간 형식이 아닙니다 (예: 09:00)")
+    .refine((time) => {
+      const minutes = timeToMinutes(time);
+      return minutes >= BUSINESS_HOURS.START_MINUTES && minutes <= BUSINESS_HOURS.END_MINUTES;
+    }, `시작 시간은 ${BUSINESS_HOURS.START} ~ ${BUSINESS_HOURS.END} 사이여야 합니다`),
+  endTime: z.string()
+    .regex(/^\d{2}:\d{2}$/, "올바른 시간 형식이 아닙니다 (예: 10:00)")
+    .refine((time) => {
+      const minutes = timeToMinutes(time);
+      return minutes >= BUSINESS_HOURS.START_MINUTES && minutes <= BUSINESS_HOURS.END_MINUTES;
+    }, `종료 시간은 ${BUSINESS_HOURS.START} ~ ${BUSINESS_HOURS.END} 사이여야 합니다`),
+  attendees: z.number().min(1, "1명 이상이어야 합니다"),
+  equipments: z.array(z.enum(["tv", "whiteboard", "video", "speaker"])).optional(),
+  floor: z.string().optional(),
+}).refine((data) => {
+  const start = timeToMinutes(data.startTime);
+  const end = timeToMinutes(data.endTime);
+  return end > start;
+}, {
+  message: "종료 시간은 시작 시간보다 늦어야 합니다",
+  path: ["endTime"],
+})
+
+type BookingFormData = z.infer<typeof bookingSchema>;
+
 export function BookingTab() {
-  const [date, setDate] = useQueryState('date', parseAsIsoDate.withDefault(new Date()));
+  const [reservationStateDate, setReservationStateDate] = useQueryState('date', parseAsIsoDate.withDefault(new Date()));
+
+  const form = useForm<BookingFormData>({
+    resolver: zodResolver(bookingSchema),
+    mode: "onChange",
+    defaultValues: {
+      date: format(new Date(), "yyyy-MM-dd"),
+      startTime: "",
+      endTime: "",
+      attendees: 1,
+      equipments: [],
+      floor: "all",
+    },
+  });
 
   return (
     <div className="space-y-6">
@@ -71,9 +159,9 @@ export function BookingTab() {
         </CardHeader>
 
         <CardContent>
-          <DateField label="날짜 선택" value={date} onSelect={(date) => setDate(date ?? new Date())} />
+          <DateField label="날짜 선택" value={reservationStateDate} onSelect={(selectedDate) => setReservationStateDate(selectedDate ?? new Date())} />
           <Suspense fallback={<div>Loading...</div>}>
-            <SuspenseQueries queries={[useMeetingRooms(), useReservations(format(date, "yyyy-MM-dd"))]}>
+            <SuspenseQueries queries={[useMeetingRooms(), useReservations(format(reservationStateDate, "yyyy-MM-dd"))]}>
               {([{ data: rooms }, { data: reservations }]) => {
                 return (
                   <>
@@ -108,42 +196,120 @@ export function BookingTab() {
           <CardTitle>예약 조건</CardTitle>
         </CardHeader>
         <CardContent>
-          <DateField label="날짜" />
-          <InputField label="참석 인원" placeholder="1" type="number" min={1} />
-          <SelectField label="시작 시간" options={[]} />
-          <SelectField label="종료 시간" options={[]} />
-          <SelectField
-            label="선호 층 (선택)"
-            options={[
-              { label: "전체", value: "all" },
-              { label: "회의실 A", value: "room-1" },
-              { label: "회의실 B", value: "room-2" },
-              { label: "대회의실", value: "room-3" },
-              { label: "소회의실", value: "room-4" },
-            ]}
+          <Controller
+            name="date"
+            control={form.control}
+            render={({ field }) => (
+              <DateField
+                label="날짜"
+                value={new Date(field.value)}
+                onSelect={(date) => field.onChange(format(date ?? new Date(), "yyyy-MM-dd"))}
+              />
+            )}
           />
 
-          <div className="space-y-2">
-            <Label>필요 장비</Label>
-            <ToggleGroup type="multiple" variant="outline" spacing={2} size="sm">
-              <ToggleGroupItem value="tv">
-                <Tv className="h-4 w-4" />
-                TV
-              </ToggleGroupItem>
-              <ToggleGroupItem value="whiteboard">
-                <Presentation className="h-4 w-4" />
-                화이트보드
-              </ToggleGroupItem>
-              <ToggleGroupItem value="video">
-                <Video className="h-4 w-4" />
-                화상회의
-              </ToggleGroupItem>
-              <ToggleGroupItem value="speaker">
-                <Volume2 className="h-4 w-4" />
-                스피커
-              </ToggleGroupItem>
-            </ToggleGroup>
-          </div>
+          <InputField
+            label="참석 인원"
+            type="number"
+            min={1}
+            {...form.register("attendees", { valueAsNumber: true })}
+          />
+          {form.formState.errors.attendees && (
+            <p className="text-destructive text-sm mt-1">
+              {form.formState.errors.attendees.message}
+            </p>
+          )}
+
+          <Controller
+            name="startTime"
+            control={form.control}
+            render={({ field }) => (
+              <div>
+                <SelectField
+                  label="시작 시간"
+                  placeholder="선택"
+                  options={generateTimeOptions(9, 20, 30)}
+                  value={field.value}
+                  onValueChange={field.onChange}
+                />
+                {form.formState.errors.startTime && (
+                  <p className="text-destructive text-sm mt-1">
+                    {form.formState.errors.startTime.message}
+                  </p>
+                )}
+              </div>
+            )}
+          />
+
+          <Controller
+            name="endTime"
+            control={form.control}
+            render={({ field }) => (
+              <div>
+                <SelectField
+                  label="종료 시간"
+                  placeholder="선택"
+                  options={generateTimeOptions(9, 20, 30)}
+                  value={field.value}
+                  onValueChange={field.onChange}
+                />
+                {form.formState.errors.endTime && (
+                  <p className="text-destructive text-sm mt-1">
+                    {form.formState.errors.endTime.message}
+                  </p>
+                )}
+              </div>
+            )}
+          />
+
+          <Controller
+            name="floor"
+            control={form.control}
+            render={({ field }) => (
+              <SelectField
+                label="선호 층"
+                placeholder="선택"
+                value={field.value}
+                onValueChange={field.onChange}
+                options={generateFloorOptions()}
+              />
+            )}
+          />
+
+          <Controller
+            name="equipments"
+            control={form.control}
+            render={({ field }) => (
+              <div className="space-y-2">
+                <Label>필요 장비</Label>
+                <ToggleGroup
+                  type="multiple"
+                  variant="outline"
+                  spacing={2}
+                  size="sm"
+                  value={field.value}
+                  onValueChange={field.onChange}
+                >
+                  <ToggleGroupItem value="tv">
+                    <Tv className="h-4 w-4" />
+                    TV
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="whiteboard">
+                    <Presentation className="h-4 w-4" />
+                    화이트보드
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="video">
+                    <Video className="h-4 w-4" />
+                    화상회의
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="speaker">
+                    <Volume2 className="h-4 w-4" />
+                    스피커
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+            )}
+          />
         </CardContent>
       </Card>
 
