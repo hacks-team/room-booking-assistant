@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "../styles/globals.css";
 import { Routes } from "./Routes";
 import { Toaster } from "@/components/ui/toaster";
-import { NuqsAdapter } from 'nuqs/adapters/react'
+import { NuqsAdapter } from "nuqs/adapters/react";
 
 const queryClient = new QueryClient();
 

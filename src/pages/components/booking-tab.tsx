@@ -5,8 +5,8 @@ import { z } from "zod";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { parseAsIsoDate, useQueryState } from 'nuqs'
-import { Mutation, SuspenseQueries } from '@suspensive/react-query'
+import { parseAsIsoDate, useQueryState } from "nuqs";
+import { Mutation, SuspenseQueries } from "@suspensive/react-query";
 
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +27,7 @@ const BUSINESS_HOURS = {
   END: "20:00",
   START_MINUTES: 540,
   END_MINUTES: 1140,
-}
+};
 
 type Equipment = "tv" | "whiteboard" | "video" | "speaker";
 
@@ -37,7 +37,7 @@ type Room = {
   floor: number;
   capacity: number;
   equipments: Equipment[];
-}
+};
 
 type Reservation = {
   id: string;
@@ -47,23 +47,25 @@ type Reservation = {
   end: string;
   attendees: number;
   equipments: Equipment[] | undefined;
-}
+};
 
-type PostReservationDto = Omit<Reservation, 'id'>;
+type PostReservationDto = Omit<Reservation, "id">;
 
 const getMeetingRooms = () => {
   return ky.get("/api/rooms").json<Room[]>();
-}
+};
 
 const getReservations = (date: string) => {
   return ky.get(`/api/reservations?date=${date}`).json<Reservation[]>();
-}
+};
 
 const postReservation = (reservation: PostReservationDto) => {
-  return ky.post("/api/reservations", {
-    json: reservation,
-  }).json<{ ok: boolean, code: string, message: string }>();
-}
+  return ky
+    .post("/api/reservations", {
+      json: reservation,
+    })
+    .json<{ ok: boolean; code: string; message: string }>();
+};
 
 const timeToMinutes = (time: string): number => {
   if (!time) return 0;
@@ -74,7 +76,7 @@ const timeToMinutes = (time: string): number => {
 const generateTimeOptions = (
   startHour: number,
   endHour: number,
-  intervalMinutes: number = 30
+  intervalMinutes: number = 30,
 ): Array<{ label: string; value: string }> => {
   const options: Array<{ label: string; value: string }> = [];
 
@@ -102,43 +104,50 @@ const generateFloorOptions = (): Array<{ label: string; value: string }> => {
   return options;
 };
 
-const bookingSchema = z.object({
-  date: z.string().datetime(),
-  startTime: z.string(),
-  endTime: z.string(),
-  attendees: z.coerce.number({
-    invalid_type_error: "숫자를 입력해주세요",
-  }).min(1, "1명 이상이어야 합니다"),
-  equipments: z.array(z.enum(["tv", "whiteboard", "video", "speaker"])).optional(),
-  floor: z.string().optional(),
-}).refine((data) => {
-  const start = timeToMinutes(data.startTime);
-  const end = timeToMinutes(data.endTime);
-  return end > start;
-}, {
-  message: "종료 시간은 시작 시간보다 늦어야 합니다",
-  path: ["endTime"],
-})
+const bookingSchema = z
+  .object({
+    date: z.string().datetime(),
+    startTime: z.string(),
+    endTime: z.string(),
+    attendees: z.coerce
+      .number({
+        invalid_type_error: "숫자를 입력해주세요",
+      })
+      .min(1, "1명 이상이어야 합니다"),
+    equipments: z.array(z.enum(["tv", "whiteboard", "video", "speaker"])).optional(),
+    floor: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      const start = timeToMinutes(data.startTime);
+      const end = timeToMinutes(data.endTime);
+      return end > start;
+    },
+    {
+      message: "종료 시간은 시작 시간보다 늦어야 합니다",
+      path: ["endTime"],
+    },
+  );
 
 type BookingFormData = z.infer<typeof bookingSchema>;
 
 export function BookingTab() {
-  const [reservationStateDate, setReservationStateDate] = useQueryState('date', parseAsIsoDate.withDefault(new Date()));
+  const [reservationStateDate, setReservationStateDate] = useQueryState("date", parseAsIsoDate.withDefault(new Date()));
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
 
   const useMeetingRooms = () => {
     return queryOptions({
       queryKey: ["meeting-rooms"],
       queryFn: () => getMeetingRooms(),
-    })
-  }
+    });
+  };
 
   const useReservations = (date: string) => {
     return queryOptions({
       queryKey: ["reservations", date],
       queryFn: () => getReservations(date),
-    })
-  }
+    });
+  };
 
   const queryClient = useQueryClient();
 
@@ -163,7 +172,11 @@ export function BookingTab() {
         </CardHeader>
 
         <CardContent>
-          <DateField label="날짜 선택" value={reservationStateDate} onSelect={(selectedDate) => setReservationStateDate(selectedDate ?? new Date())} />
+          <DateField
+            label="날짜 선택"
+            value={reservationStateDate}
+            onSelect={(selectedDate) => setReservationStateDate(selectedDate ?? new Date())}
+          />
           <Suspense fallback={<div>Loading...</div>}>
             <SuspenseQueries queries={[useMeetingRooms(), useReservations(format(reservationStateDate, "yyyy-MM-dd"))]}>
               {([{ data: rooms }, { data: reservations }]) => {
@@ -178,7 +191,10 @@ export function BookingTab() {
                           <SubCardContent>
                             {roomReservations.length > 0 ? (
                               roomReservations.map((reservation) => (
-                                <Badge key={reservation.id} variant="outline">{`${reservation.start} - ${reservation.end}`}</Badge>
+                                <Badge
+                                  key={reservation.id}
+                                  variant="outline"
+                                >{`${reservation.start} - ${reservation.end}`}</Badge>
                               ))
                             ) : (
                               <p className="text-muted-foreground text-sm">예약 없음</p>
@@ -217,17 +233,9 @@ export function BookingTab() {
             control={form.control}
             render={({ field }) => (
               <div>
-                <InputField
-                  label="참석 인원"
-                  type="number"
-                  min={1}
-                  value={field.value}
-                  onChange={field.onChange}
-                />
+                <InputField label="참석 인원" type="number" min={1} value={field.value} onChange={field.onChange} />
                 {form.formState.errors.attendees && (
-                  <p className="text-destructive text-sm mt-1">
-                    {form.formState.errors.attendees.message}
-                  </p>
+                  <p className="text-destructive text-sm mt-1">{form.formState.errors.attendees.message}</p>
                 )}
               </div>
             )}
@@ -246,9 +254,7 @@ export function BookingTab() {
                   onValueChange={field.onChange}
                 />
                 {form.formState.errors.startTime && (
-                  <p className="text-destructive text-sm mt-1">
-                    {form.formState.errors.startTime.message}
-                  </p>
+                  <p className="text-destructive text-sm mt-1">{form.formState.errors.startTime.message}</p>
                 )}
               </div>
             )}
@@ -267,9 +273,7 @@ export function BookingTab() {
                   onValueChange={field.onChange}
                 />
                 {form.formState.errors.endTime && (
-                  <p className="text-destructive text-sm mt-1">
-                    {form.formState.errors.endTime.message}
-                  </p>
+                  <p className="text-destructive text-sm mt-1">{form.formState.errors.endTime.message}</p>
                 )}
               </div>
             )}
@@ -336,14 +340,18 @@ export function BookingTab() {
               {([{ data: rooms }, { data: reservations }]) => {
                 const availableRooms = rooms.filter((room) => {
                   const capacityMatch = room.capacity >= form.watch("attendees");
-                  const equipmentMatch = form.watch("equipments")?.every((equipment) => room.equipments.includes(equipment as Equipment));
+                  const equipmentMatch = form
+                    .watch("equipments")
+                    ?.every((equipment) => room.equipments.includes(equipment as Equipment));
                   const selectedFloor = form.watch("floor");
                   const floorMatch = selectedFloor === "all" || room.floor === Number(selectedFloor);
 
                   const reservationMatch = reservations.find((reservation) => reservation.roomId === room.id);
 
                   if (reservationMatch) {
-                    const reservationTimeMatch = timeToMinutes(reservationMatch?.start ?? "") >= timeToMinutes(form.watch("endTime")) || timeToMinutes(reservationMatch?.end ?? "") <= timeToMinutes(form.watch("startTime"));
+                    const reservationTimeMatch =
+                      timeToMinutes(reservationMatch?.start ?? "") >= timeToMinutes(form.watch("endTime")) ||
+                      timeToMinutes(reservationMatch?.end ?? "") <= timeToMinutes(form.watch("startTime"));
                     if (!reservationTimeMatch) {
                       return false;
                     }
@@ -355,7 +363,15 @@ export function BookingTab() {
                 return (
                   <>
                     {availableRooms.map((room) => (
-                      <RoomSelect key={room.id} name={room.name} floor={room.floor} capacity={room.capacity} equipments={room.equipments} onSelect={() => setSelectedRoom(room as Room)} selected={selectedRoom?.id === room.id} />
+                      <RoomSelect
+                        key={room.id}
+                        name={room.name}
+                        floor={room.floor}
+                        capacity={room.capacity}
+                        equipments={room.equipments}
+                        onSelect={() => setSelectedRoom(room as Room)}
+                        selected={selectedRoom?.id === room.id}
+                      />
                     ))}
                   </>
                 );
@@ -367,11 +383,11 @@ export function BookingTab() {
             mutationFn={(data: PostReservationDto) => postReservation(data)}
             onSuccess={() => {
               queryClient.invalidateQueries({
-                queryKey: ['reservations', format(reservationStateDate, "yyyy-MM-dd")]
+                queryKey: ["reservations", format(reservationStateDate, "yyyy-MM-dd")],
               });
 
               queryClient.invalidateQueries({
-                queryKey: ['meeting-rooms']
+                queryKey: ["meeting-rooms"],
               });
 
               toast({
@@ -397,7 +413,6 @@ export function BookingTab() {
                 size="lg"
                 disabled={!selectedRoom || mutation.isPending}
                 onClick={() => {
-
                   const startTime = form.watch("startTime");
                   const endTime = form.watch("endTime");
 
