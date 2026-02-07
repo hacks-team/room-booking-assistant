@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { SubCard, SubCardContent, SubCardHeader } from "@/components/ui/sub-card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import type { Reservation, Room } from "@/src/types";
+import type { Equipment, Reservation, Room } from "@/src/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Tv, Presentation, Video, Volume2 } from "lucide-react";
@@ -86,6 +86,7 @@ export function BookingTab() {
   const {
     register,
     control,
+    watch,
     formState: { errors },
   } = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
@@ -99,6 +100,30 @@ export function BookingTab() {
     },
     mode: "onChange",
   });
+
+  const { startTime, endTime, attendees, equipments, floor } = watch();
+
+  // 조건 1: 수용 인원
+  const 인원충족 = (room: Room) => room.capacity >= attendees;
+
+  // 조건 2: 장비 포함
+  const 장비포함 = (room: Room) =>
+    equipments.every((eq) => room.equipments.includes(eq as Equipment));
+
+  // 조건 3: 층 조건 (선택)
+  const 층일치 = (room: Room) =>
+    floor === "all" || room.floor === Number(floor);
+
+  // 조건 4: 시간 충돌 없음
+  const 시간가용 = (room: Room) => {
+    if (!startTime || !endTime) return true;
+    const roomReservations = reservations.filter((r) => r.roomId === room.id);
+    return roomReservations.every((r) => endTime <= r.start || startTime >= r.end);
+  };
+
+  const availableRooms = rooms.filter(
+    (room) => 인원충족(room) && 장비포함(room) && 층일치(room) && 시간가용(room)
+  );
 
   return (
     <div className="space-y-6">
@@ -142,9 +167,7 @@ export function BookingTab() {
                 value={parseDate(field.value)}
                 onSelect={(date) => {
                   if (date) {
-                    const formatted = formatDate(date);
-                    field.onChange(formatted);
-                    setSearchParams({ date: formatted });
+                    field.onChange(formatDate(date));
                   }
                 }}
               />
@@ -249,8 +272,19 @@ export function BookingTab() {
           <CardTitle>예약 가능한 회의실</CardTitle>
         </CardHeader>
         <CardContent>
-          <RoomSelect selected name="회의실 1" floor={1} capacity={4} equipments={["tv", "whiteboard"]} />
-          <RoomSelect name="회의실 2" floor={1} capacity={4} equipments={["tv", "whiteboard"]} />
+          {availableRooms.length > 0 ? (
+            availableRooms.map((room) => (
+              <RoomSelect
+                key={room.id}
+                name={room.name}
+                floor={room.floor}
+                capacity={room.capacity}
+                equipments={room.equipments}
+              />
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">조건에 맞는 회의실이 없습니다.</p>
+          )}
           <Button size="lg">예약하기</Button>
         </CardContent>
       </Card>
