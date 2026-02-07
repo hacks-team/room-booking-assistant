@@ -7,18 +7,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { SubCard, SubCardContent, SubCardHeader } from "@/components/ui/sub-card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import type { Room } from "@/src/types";
+import type { Reservation, Room } from "@/src/types";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Tv, Presentation, Video, Volume2, Building2, Users } from "lucide-react";
 
 import { RoomSelect } from "./room-select";
+import { ReservationCard } from "../ui/reservation-card";
 
 export function BookingTab() {
+  // 회의실 목록
   const { data: rooms } = useSuspenseQuery<Room[]>({
-    queryKey: ["rooms"],
+    queryKey: ["get/rooms"],
     queryFn: () => fetch("/api/rooms").then((res) => res.json()),
   });
-
+  const { data: reservations } = useSuspenseQuery<Reservation[]>({
+    queryKey: ["get/reservations"],
+    queryFn: () => fetch("/api/reservations?date=2026-02-07").then((res) => res.json()),
+  });
+  console.log(reservations)
   return (
     <div className="space-y-6">
       <Card>
@@ -28,20 +34,26 @@ export function BookingTab() {
         <CardContent>
           <DateField label="날짜 선택" />
 
-          <SubCard>
-            <SubCardHeader>회의실 1</SubCardHeader>
-            <SubCardContent>
-              <Badge variant="outline">10:00 - 11:00</Badge>
-              <Badge variant="outline">10:00 - 11:00</Badge>
-            </SubCardContent>
-          </SubCard>
-
-          <SubCard>
-            <SubCardHeader>회의실 2</SubCardHeader>
-            <SubCardContent>
-              <p className="text-muted-foreground text-sm">예약 없음</p>
-            </SubCardContent>
-          </SubCard>
+          {rooms.map((room) => {
+            const roomReservations = reservations.filter((r) => r.roomId === room.id);
+            const hasReservations = roomReservations.length > 0;
+            return (
+              <SubCard key={room.id}>
+                <SubCardHeader>{room.name}</SubCardHeader>
+                <SubCardContent>
+                  {hasReservations ? (
+                    roomReservations.map((r) => (
+                      <Badge key={r.id} variant="outline">
+                        {r.start} - {r.end}
+                      </Badge>
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground text-sm">예약 없음</p>
+                  )}
+                </SubCardContent>
+              </SubCard>
+            );
+          })}
         </CardContent>
       </Card>
 
