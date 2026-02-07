@@ -10,9 +10,22 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { Reservation, Room } from "@/src/types";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Tv, Presentation, Video, Volume2, Building2, Users } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 
 import { RoomSelect } from "./room-select";
 import { ReservationCard } from "../ui/reservation-card";
+
+function formatDate(date: Date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function parseDate(dateStr: string) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
 
 export function BookingTab() {
   // 회의실 목록
@@ -20,11 +33,20 @@ export function BookingTab() {
     queryKey: ["get/rooms"],
     queryFn: () => fetch("/api/rooms").then((res) => res.json()),
   });
+
+  // 예약 현황
+  const [searchParams, setSearchParams] = useSearchParams();
+  const dateParam = searchParams.get("date") ?? formatDate(new Date());
+  const selectedDate = parseDate(dateParam);
   const { data: reservations } = useSuspenseQuery<Reservation[]>({
-    queryKey: ["get/reservations"],
-    queryFn: () => fetch("/api/reservations?date=2026-02-07").then((res) => res.json()),
+    queryKey: ["get/reservations", dateParam],
+    queryFn: () => fetch(`/api/reservations?date=${dateParam}`).then((res) => res.json()),
   });
-  console.log(reservations)
+  const handleDateChange = (date?: Date) => {
+    if (date) {
+      setSearchParams({ date: formatDate(date) });
+    }
+  };
   return (
     <div className="space-y-6">
       <Card>
@@ -32,24 +54,20 @@ export function BookingTab() {
           <CardTitle>예약 현황</CardTitle>
         </CardHeader>
         <CardContent>
-          <DateField label="날짜 선택" />
+          <DateField label="날짜 선택" value={selectedDate} onSelect={handleDateChange} />
 
-          {rooms.map((room) => {
-            const roomReservations = reservations.filter((r) => r.roomId === room.id);
-            const hasReservations = roomReservations.length > 0;
+          {[...new Set(reservations.map((r) => r.roomId))].map((roomId) => {
+            const room = rooms.find((r) => r.id === roomId);
+            const roomReservations = reservations.filter((r) => r.roomId === roomId);
             return (
-              <SubCard key={room.id}>
-                <SubCardHeader>{room.name}</SubCardHeader>
+              <SubCard key={roomId}>
+                <SubCardHeader>{room?.name ?? roomId}</SubCardHeader>
                 <SubCardContent>
-                  {hasReservations ? (
-                    roomReservations.map((r) => (
-                      <Badge key={r.id} variant="outline">
-                        {r.start} - {r.end}
-                      </Badge>
-                    ))
-                  ) : (
-                    <p className="text-muted-foreground text-sm">예약 없음</p>
-                  )}
+                  {roomReservations.map((r) => (
+                    <Badge key={r.id} variant="outline">
+                      {r.start} - {r.end}
+                    </Badge>
+                  ))}
                 </SubCardContent>
               </SubCard>
             );
