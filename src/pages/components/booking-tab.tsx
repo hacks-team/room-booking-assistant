@@ -93,7 +93,7 @@ export function BookingTab() {
   } = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
-      date: dateParam,
+      date: formatDate(new Date()),
       startTime: "",
       endTime: "",
       attendees: 1,
@@ -147,7 +147,7 @@ export function BookingTab() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = (await res.json()) as CreateReservationResponse;
+      const data: CreateReservationResponse = await (res.json() as Promise<CreateReservationResponse>);
       if (!data.ok) {
         throw new Error(data.message);
       }
@@ -188,6 +188,11 @@ export function BookingTab() {
 
   return (
     <div className="space-y-6">
+      {/* 예약 현황의 책임
+      1. 날짜를 선택한다.
+      2. 날짜에 맞는 현황을 보여준다.
+      3. 
+       */}
       <Card>
         <CardHeader>
           <CardTitle>예약 현황</CardTitle>
