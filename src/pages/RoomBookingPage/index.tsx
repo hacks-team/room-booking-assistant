@@ -1,7 +1,7 @@
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookingTab } from "@/src/pages/components/booking-tab";
 import { MyReservationsTab } from "@/src/pages/components/my-reservations-tab";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PropsWithChildren } from "react";
+import { PropsWithChildren, Suspense } from "react";
 
 export function RoomBookingPage() {
   return (
@@ -14,7 +14,9 @@ export function RoomBookingPage() {
         </TabsList>
 
         <TabsContent value="booking">
-          <BookingTab />
+          <Suspense fallback={<div>로딩 중...</div>}>
+            <BookingTab />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="my-reservations">

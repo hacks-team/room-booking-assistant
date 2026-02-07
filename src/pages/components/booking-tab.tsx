@@ -1,17 +1,24 @@
-import { Tv, Presentation, Video, Volume2, Building2, Users } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-import { Label } from "@/components/ui/label";
+import { DateField } from "@/components/date-field";
+import { InputField } from "@/components/input-field";
+import { SelectField } from "@/components/select-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { InputField } from "@/components/input-field";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { SubCard, SubCardContent, SubCardHeader } from "@/components/ui/sub-card";
-import { SelectField } from "@/components/select-field";
-import { DateField } from "@/components/date-field";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import type { Room } from "@/src/types";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { Tv, Presentation, Video, Volume2, Building2, Users } from "lucide-react";
+
 import { RoomSelect } from "./room-select";
 
 export function BookingTab() {
+  const { data: rooms } = useSuspenseQuery<Room[]>({
+    queryKey: ["rooms"],
+    queryFn: () => fetch("/api/rooms").then((res) => res.json()),
+  });
+
   return (
     <div className="space-y-6">
       <Card>
@@ -20,6 +27,7 @@ export function BookingTab() {
         </CardHeader>
         <CardContent>
           <DateField label="날짜 선택" />
+
           <SubCard>
             <SubCardHeader>회의실 1</SubCardHeader>
             <SubCardContent>
@@ -27,6 +35,7 @@ export function BookingTab() {
               <Badge variant="outline">10:00 - 11:00</Badge>
             </SubCardContent>
           </SubCard>
+
           <SubCard>
             <SubCardHeader>회의실 2</SubCardHeader>
             <SubCardContent>
