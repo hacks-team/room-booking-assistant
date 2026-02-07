@@ -7,10 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { SubCard, SubCardContent, SubCardHeader } from "@/components/ui/sub-card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import type { Equipment, Reservation, Room } from "@/src/types";
+import { useToast } from "@/hooks/use-toast";
+import type { CreateReservationPayload, CreateReservationResponse, Equipment, Reservation, Room } from "@/src/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Tv, Presentation, Video, Volume2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useSearchParams } from "react-router-dom";
 import { z } from "zod";
@@ -124,6 +126,65 @@ export function BookingTab() {
   const availableRooms = rooms.filter(
     (room) => 인원충족(room) && 장비포함(room) && 층일치(room) && 시간가용(room)
   );
+
+  // 회의실 선택 상태
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+
+  // 선택된 회의실이 필터 결과에서 빠지면 선택 해제
+  useEffect(() => {
+    if (selectedRoomId && !availableRooms.some((room) => room.id === selectedRoomId)) {
+      setSelectedRoomId(null);
+    }
+  }, [availableRooms, selectedRoomId]);
+
+  // 예약 생성
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: async (payload: CreateReservationPayload) => {
+      const res = await fetch("/api/reservations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = (await res.json()) as CreateReservationResponse;
+      if (!data.ok) {
+        throw new Error(data.message);
+      }
+      return data;
+    },
+    onSuccess: async () => {
+      toast({ title: "예약이 완료되었습니다" });
+      await queryClient.invalidateQueries({ queryKey: ["get/reservations"] });
+      setSelectedRoomId(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleSubmit = () => {
+    if (!selectedRoomId) {
+      toast({ title: "회의실을 선택해주세요" });
+      return;
+    }
+    if (!startTime || !endTime) {
+      toast({ title: "시작 시간과 종료 시간을 선택해주세요" });
+      return;
+    }
+    if (endTime <= startTime) {
+      toast({ title: "종료 시간은 시작 시간보다 늦어야 합니다" });
+      return;
+    }
+    mutation.mutate({
+      roomId: selectedRoomId,
+      date: dateParam,
+      start: startTime,
+      end: endTime,
+      attendees,
+      equipments: equipments as Equipment[],
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -280,12 +341,16 @@ export function BookingTab() {
                 floor={room.floor}
                 capacity={room.capacity}
                 equipments={room.equipments}
+                selected={selectedRoomId === room.id}
+                onSelect={() => setSelectedRoomId(room.id)}
               />
             ))
           ) : (
             <p className="text-sm text-muted-foreground">조건에 맞는 회의실이 없습니다.</p>
           )}
-          <Button size="lg">예약하기</Button>
+          <Button size="lg" onClick={handleSubmit} disabled={mutation.isPending}>
+            {mutation.isPending ? "예약 중..." : "예약하기"}
+          </Button>
         </CardContent>
       </Card>
     </div>
