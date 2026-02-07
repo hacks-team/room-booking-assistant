@@ -8,12 +8,38 @@ import { Label } from "@/components/ui/label";
 import { SubCard, SubCardContent, SubCardHeader } from "@/components/ui/sub-card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { Reservation, Room } from "@/src/types";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { Tv, Presentation, Video, Volume2, Building2, Users } from "lucide-react";
+import { Tv, Presentation, Video, Volume2 } from "lucide-react";
+import { Controller, useForm } from "react-hook-form";
 import { useSearchParams } from "react-router-dom";
+import { z } from "zod";
 
 import { RoomSelect } from "./room-select";
 import { ReservationCard } from "../ui/reservation-card";
+
+const bookingSchema = z
+  .object({
+    date: z.string(),
+    startTime: z.string().min(1, "시작 시간을 선택해주세요"),
+    endTime: z.string().min(1, "종료 시간을 선택해주세요"),
+    attendees: z.coerce.number().min(1, "참석 인원은 1명 이상이어야 합니다"),
+    equipments: z.array(z.string()),
+    floor: z.string(),
+  })
+  .refine((data) => data.endTime > data.startTime, {
+    message: "종료 시간은 시작 시간보다 늦어야 합니다",
+    path: ["endTime"],
+  });
+
+type BookingFormValues = z.infer<typeof bookingSchema>;
+
+const timeOptions = Array.from({ length: 19 }, (_, i) => {
+  const hour = Math.floor(i / 2) + 9;
+  const minute = i % 2 === 0 ? "00" : "30";
+  const value = `${String(hour).padStart(2, "0")}:${minute}`;
+  return { label: value, value };
+});
 
 function formatDate(date: Date) {
   const y = date.getFullYear();
@@ -47,6 +73,33 @@ export function BookingTab() {
       setSearchParams({ date: formatDate(date) });
     }
   };
+
+  // 선호 층 옵션
+  const floorOptions = [
+    { label: "전체", value: "all" },
+    ...[...new Set(rooms.map((r) => r.floor))]
+      .sort((a, b) => a - b)
+      .map((floor) => ({ label: `${floor}층`, value: String(floor) })),
+  ];
+
+  // 폼 상태 관리
+  const {
+    register,
+    control,
+    formState: { errors },
+  } = useForm<BookingFormValues>({
+    resolver: zodResolver(bookingSchema),
+    defaultValues: {
+      date: dateParam,
+      startTime: "",
+      endTime: "",
+      attendees: 1,
+      equipments: [],
+      floor: "all",
+    },
+    mode: "onChange",
+  });
+
   return (
     <div className="space-y-6">
       <Card>
@@ -80,41 +133,113 @@ export function BookingTab() {
           <CardTitle>예약 조건</CardTitle>
         </CardHeader>
         <CardContent>
-          <DateField label="날짜" />
-          <InputField label="참석 인원" placeholder="1" type="number" min={1} />
-          <SelectField label="시작 시간" options={[]} />
-          <SelectField label="종료 시간" options={[]} />
-          <SelectField
-            label="선호 층 (선택)"
-            options={[
-              { label: "전체", value: "all" },
-              { label: "회의실 A", value: "room-1" },
-              { label: "회의실 B", value: "room-2" },
-              { label: "대회의실", value: "room-3" },
-              { label: "소회의실", value: "room-4" },
-            ]}
+          <Controller
+            name="date"
+            control={control}
+            render={({ field }) => (
+              <DateField
+                label="날짜"
+                value={parseDate(field.value)}
+                onSelect={(date) => {
+                  if (date) {
+                    const formatted = formatDate(date);
+                    field.onChange(formatted);
+                    setSearchParams({ date: formatted });
+                  }
+                }}
+              />
+            )}
+          />
+
+          <InputField
+            label="참석 인원"
+            placeholder="1"
+            type="number"
+            min={1}
+            {...register("attendees")}
+          />
+          {errors.attendees && (
+            <p className="text-sm text-red-500">{errors.attendees.message}</p>
+          )}
+
+          <Controller
+            name="startTime"
+            control={control}
+            render={({ field }) => (
+              <SelectField
+                label="시작 시간"
+                options={timeOptions}
+                value={field.value}
+                onValueChange={field.onChange}
+              />
+            )}
+          />
+          {errors.startTime && (
+            <p className="text-sm text-red-500">{errors.startTime.message}</p>
+          )}
+
+          <Controller
+            name="endTime"
+            control={control}
+            render={({ field }) => (
+              <SelectField
+                label="종료 시간"
+                options={timeOptions}
+                value={field.value}
+                onValueChange={field.onChange}
+              />
+            )}
+          />
+          {errors.endTime && (
+            <p className="text-sm text-red-500">{errors.endTime.message}</p>
+          )}
+
+          <Controller
+            name="floor"
+            control={control}
+            render={({ field }) => (
+              <SelectField
+                label="선호 층 (선택)"
+                options={floorOptions}
+                value={field.value}
+                onValueChange={field.onChange}
+              />
+            )}
           />
 
           <div className="space-y-2">
             <Label>필요 장비</Label>
-            <ToggleGroup type="multiple" variant="outline" spacing={2} size="sm">
-              <ToggleGroupItem value="tv">
-                <Tv className="h-4 w-4" />
-                TV
-              </ToggleGroupItem>
-              <ToggleGroupItem value="whiteboard">
-                <Presentation className="h-4 w-4" />
-                화이트보드
-              </ToggleGroupItem>
-              <ToggleGroupItem value="video">
-                <Video className="h-4 w-4" />
-                화상회의
-              </ToggleGroupItem>
-              <ToggleGroupItem value="speaker">
-                <Volume2 className="h-4 w-4" />
-                스피커
-              </ToggleGroupItem>
-            </ToggleGroup>
+            <Controller
+              name="equipments"
+              control={control}
+              render={({ field }) => (
+                <ToggleGroup
+                  type="multiple"
+                  variant="outline"
+                  spacing={2}
+                  size="sm"
+                  value={field.value}
+                  onValueChange={field.onChange}
+                >
+                  <ToggleGroupItem value="tv">
+                    <Tv className="h-4 w-4" />
+                    TV
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="whiteboard">
+                    <Presentation className="h-4 w-4" />
+                    화이트보드
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="video">
+                    <Video className="h-4 w-4" />
+                    화상회의
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="speaker">
+                    <Volume2 className="h-4 w-4" />
+                    스피커
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              )}
+            />
           </div>
         </CardContent>
       </Card>
