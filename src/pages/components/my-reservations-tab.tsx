@@ -1,9 +1,10 @@
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import type { DeleteReservationResponse, Reservation, Room } from "@/src/types";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { Calendar } from "lucide-react";
+import { Calendar, Clock, Trash2, Users } from "lucide-react";
 
-import { ReservationCard } from "../ui/reservation-card";
+import { MeetingRoomCard } from "../ui/meeting-room-card";
 
 export function MyReservationsTab() {
   const { toast } = useToast();
@@ -51,16 +52,27 @@ export function MyReservationsTab() {
   return (
     <div className="space-y-4">
       {reservations.map((reservation) => (
-        <ReservationCard
-          key={reservation.id}
-          name={getRoomName(reservation.roomId)}
-          date={reservation.date}
-          startTime={reservation.start}
-          endTime={reservation.end}
-          capacity={reservation.attendees}
-          equipments={reservation.equipments}
-          onCancel={() => cancelMutation.mutate(reservation.id)}
-        />
+        <MeetingRoomCard key={reservation.id}>
+          <MeetingRoomCard.Name>
+            {getRoomName(reservation.roomId)}
+          </MeetingRoomCard.Name>
+          <MeetingRoomCard.Row>
+            <MeetingRoomCard.Info icon={Calendar}>{reservation.date}</MeetingRoomCard.Info>
+            <MeetingRoomCard.Info icon={Clock}>{reservation.start} - {reservation.end}</MeetingRoomCard.Info>
+            <MeetingRoomCard.Info icon={Users}>{reservation.attendees}명</MeetingRoomCard.Info>
+          </MeetingRoomCard.Row>
+          <MeetingRoomCard.Row>
+            <MeetingRoomCard.Badges items={reservation.equipments} variant="secondary" />
+          </MeetingRoomCard.Row>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => cancelMutation.mutate(reservation.id)}
+          >
+            <Trash2 className="mr-1 h-4 w-4" />
+            취소
+          </Button>
+        </MeetingRoomCard>
       ))}
     </div>
   );

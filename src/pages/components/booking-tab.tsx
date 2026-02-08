@@ -5,20 +5,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { SubCard, SubCardContent, SubCardHeader } from "@/components/ui/sub-card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useToast } from "@/hooks/use-toast";
 import type { CreateReservationPayload, CreateReservationResponse, Equipment, Reservation, Room } from "@/src/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { Tv, Presentation, Video, Volume2 } from "lucide-react";
+import { Building2, Presentation, Tv, Users, Video, Volume2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useSearchParams } from "react-router-dom";
 import { z } from "zod";
 
-import { RoomSelect } from "./room-select";
-import { ReservationCard } from "../ui/reservation-card";
+import { MeetingRoomCard } from "../ui/meeting-room-card";
 
 const bookingSchema = z
   .object({
@@ -188,11 +186,6 @@ export function BookingTab() {
 
   return (
     <div className="space-y-6">
-      {/* 예약 현황의 책임
-      1. 날짜를 선택한다.
-      2. 날짜에 맞는 현황을 보여준다.
-      3. 
-       */}
       <Card>
         <CardHeader>
           <CardTitle>예약 현황</CardTitle>
@@ -203,17 +196,15 @@ export function BookingTab() {
           {[...new Set(reservations.map((r) => r.roomId))].map((roomId) => {
             const room = rooms.find((r) => r.id === roomId);
             const roomReservations = reservations.filter((r) => r.roomId === roomId);
+            const startTime = roomReservations[0].start
+            const endTime = roomReservations[0].end
             return (
-              <SubCard key={roomId}>
-                <SubCardHeader>{room?.name ?? roomId}</SubCardHeader>
-                <SubCardContent>
-                  {roomReservations.map((r) => (
-                    <Badge key={r.id} variant="outline">
-                      {r.start} - {r.end}
-                    </Badge>
-                  ))}
-                </SubCardContent>
-              </SubCard>
+              <MeetingRoomCard key={roomId}>
+                <MeetingRoomCard.Name>{room?.name ?? roomId}</MeetingRoomCard.Name>
+                <MeetingRoomCard.Row>
+                  <MeetingRoomCard.Badges items={[`${startTime} - ${endTime}`]} variant="outline" />
+                </MeetingRoomCard.Row>
+              </MeetingRoomCard>
             );
           })}
         </CardContent>
@@ -340,15 +331,20 @@ export function BookingTab() {
         <CardContent>
           {availableRooms.length > 0 ? (
             availableRooms.map((room) => (
-              <RoomSelect
+              <MeetingRoomCard
                 key={room.id}
-                name={room.name}
-                floor={room.floor}
-                capacity={room.capacity}
-                equipments={room.equipments}
                 selected={selectedRoomId === room.id}
                 onSelect={() => setSelectedRoomId(room.id)}
-              />
+              >
+                <MeetingRoomCard.Name>{room.name}</MeetingRoomCard.Name>
+                <MeetingRoomCard.Row>
+                  <MeetingRoomCard.Info icon={Building2}>{room.floor}층</MeetingRoomCard.Info>
+                  <MeetingRoomCard.Info icon={Users}>{room.capacity}명</MeetingRoomCard.Info>
+                </MeetingRoomCard.Row>
+                <MeetingRoomCard.Row>
+                  <MeetingRoomCard.Badges items={room.equipments} variant="outline" />
+                </MeetingRoomCard.Row>
+              </MeetingRoomCard>
             ))
           ) : (
             <p className="text-sm text-muted-foreground">조건에 맞는 회의실이 없습니다.</p>
