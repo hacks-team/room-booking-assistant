@@ -137,6 +137,28 @@ const bookingSchema = z
 
 type BookingFormData = z.infer<typeof bookingSchema>;
 
+const filterAvailableRooms = (rooms: Room[], reservations: Reservation[], formValues: BookingFormData): Room[] => {
+  return rooms.filter((room) => {
+    const capacityMatch = room.capacity >= formValues.attendees;
+    const equipmentMatch = formValues.equipments?.every((equipment) => room.equipments.includes(equipment as Equipment));
+    const selectedFloor = formValues.floor;
+    const floorMatch = selectedFloor === "all" || room.floor === Number(formValues.floor);
+
+    const reservationMatch = reservations.find((reservation) => reservation.roomId === room.id);
+
+    if (reservationMatch) {
+      const reservationTimeMatch =
+        timeToMinutes(reservationMatch?.start ?? "") >= timeToMinutes(formValues.endTime) ||
+        timeToMinutes(reservationMatch?.end ?? "") <= timeToMinutes(formValues.startTime);
+      if (!reservationTimeMatch) {
+        return false;
+      }
+    }
+
+    return floorMatch && capacityMatch && equipmentMatch;
+  });
+};
+
 export function BookingTab() {
   const [reservationStateDate, setReservationStateDate] = useQueryState("date", parseAsIsoDate.withDefault(new Date()));
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
@@ -337,42 +359,19 @@ export function BookingTab() {
           <Suspense fallback={<div>Loading...</div>}>
             <SuspenseQueries queries={[useMeetingRooms(), useReservations(formatTOYYYYMMDD(reservationStateDate))]}>
               {([{ data: rooms }, { data: reservations }]) => {
-                const availableRooms = rooms.filter((room) => {
-                  const capacityMatch = room.capacity >= form.watch("attendees");
-                  const equipmentMatch = form
-                    .watch("equipments")
-                    ?.every((equipment) => room.equipments.includes(equipment as Equipment));
-                  const selectedFloor = form.watch("floor");
-                  const floorMatch = selectedFloor === "all" || room.floor === Number(selectedFloor);
-
-                  const reservationMatch = reservations.find((reservation) => reservation.roomId === room.id);
-
-                  if (reservationMatch) {
-                    const reservationTimeMatch =
-                      timeToMinutes(reservationMatch?.start ?? "") >= timeToMinutes(form.watch("endTime")) ||
-                      timeToMinutes(reservationMatch?.end ?? "") <= timeToMinutes(form.watch("startTime"));
-                    if (!reservationTimeMatch) {
-                      return false;
-                    }
-                  }
-
-                  return floorMatch && capacityMatch && equipmentMatch;
-                });
-
+                const availableRooms = filterAvailableRooms(rooms, reservations, form.watch());
                 return (
-                  <>
-                    {availableRooms.map((room) => (
-                      <RoomSelect
-                        key={room.id}
-                        name={room.name}
-                        floor={room.floor}
-                        capacity={room.capacity}
-                        equipments={room.equipments}
-                        onSelect={() => setSelectedRoom(room as Room)}
-                        selected={selectedRoom?.id === room.id}
-                      />
-                    ))}
-                  </>
+                  <RoomList
+                    rooms={availableRooms}
+                    renderItem={(room) => <RoomSelect
+                      key={room.id}
+                      name={room.name}
+                      floor={room.floor}
+                      capacity={room.capacity}
+                      equipments={room.equipments}
+                      onSelect={() => setSelectedRoom(room as Room)}
+                      selected={selectedRoom?.id === room.id} />}
+                  />
                 );
               }}
             </SuspenseQueries>
