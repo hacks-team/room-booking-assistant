@@ -11,7 +11,6 @@ interface ReservationCardProps {
   capacity: number;
   equipments: string[];
   onCancel?: () => void;
-  isCancelling?: boolean;
 }
 
 export const ReservationCard = ({
@@ -22,7 +21,6 @@ export const ReservationCard = ({
   capacity,
   equipments,
   onCancel,
-  isCancelling = false,
 }: ReservationCardProps) => {
   return (
     <Card>
@@ -53,9 +51,9 @@ export const ReservationCard = ({
             </div>
           </div>
 
-          <Button variant="destructive" size="sm" onClick={onCancel} disabled={isCancelling || !onCancel}>
+          <Button variant="destructive" size="sm" onClick={onCancel} disabled={false}>
             <Trash2 className="mr-1 h-4 w-4" />
-            {isCancelling ? "취소 중..." : "취소"}
+            취소
           </Button>
         </div>
       </CardContent>

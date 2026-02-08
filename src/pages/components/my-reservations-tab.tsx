@@ -104,7 +104,6 @@ export function MyReservationsTab() {
                           capacity={reservation.attendees}
                           equipments={room?.equipments ?? []}
                           onCancel={() => mutation.mutate()}
-                          isCancelling={mutation.isPending}
                         />
                       )}
                     </Mutation>
