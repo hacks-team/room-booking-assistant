@@ -6,11 +6,9 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { parseAsIsoDate, useQueryState } from "nuqs";
-import { Mutation, SuspenseQueries } from "@suspensive/react-query";
+import { SuspenseQueries } from "@suspensive/react-query";
 import { ErrorBoundary } from "@suspensive/react";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { InputField } from "@/components/input-field";
 import { SubCard, SubCardContent, SubCardHeader } from "@/components/ui/sub-card";
@@ -23,12 +21,67 @@ import { Suspense, useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { RoomCard } from "./room-card";
 import { RoomList } from "./room-list";
+import { ReservationSubmitButton } from "./reservation-submit-button";
 
-const formatTOYYYYMMDD = (date: Date) => {
+
+const validateReservation = (
+  formValues: BookingFormData,
+  selectedRoom: Room | null
+): { valid: boolean; message?: string } => {
+  if (!selectedRoom) {
+    return {
+      valid: false,
+      message: "예약할 회의실을 선택해주세요",
+    };
+  }
+
+  if (!formValues.startTime || !formValues.endTime) {
+    return {
+      valid: false,
+      message: "시작 시간과 종료 시간을 모두 선택해주세요",
+    };
+  }
+
+  const start = timeToMinutes(formValues.startTime);
+  const end = timeToMinutes(formValues.endTime);
+
+  if (start < BUSINESS_HOURS.START_MINUTES || start > BUSINESS_HOURS.END_MINUTES) {
+    return {
+      valid: false,
+      message: `시작 시간은 ${BUSINESS_HOURS.START} ~ ${BUSINESS_HOURS.END} 사이여야 합니다`,
+    };
+  }
+
+  if (end < BUSINESS_HOURS.START_MINUTES || end > BUSINESS_HOURS.END_MINUTES) {
+    return {
+      valid: false,
+      message: `종료 시간은 ${BUSINESS_HOURS.START} ~ ${BUSINESS_HOURS.END} 사이여야 합니다`,
+    };
+  }
+
+  if (end <= start) {
+    return {
+      valid: false,
+      message: "종료 시간은 시작 시간보다 늦어야 합니다",
+    };
+  }
+
+  const duration = end - start;
+  if (duration < 30) {
+    return {
+      valid: false,
+      message: "최소 30분 이상 예약해야 합니다",
+    };
+  }
+
+  return { valid: true };
+};
+
+export const formatTOYYYYMMDD = (date: Date) => {
   return format(date, "yyyy-MM-dd");
 };
 
-const BUSINESS_HOURS = {
+export const BUSINESS_HOURS = {
   START: "09:00",
   END: "20:00",
   START_MINUTES: 540,
@@ -55,17 +108,17 @@ export type Reservation = {
   equipments: Equipment[] | undefined;
 };
 
-type PostReservationDto = Omit<Reservation, "id">;
+export type PostReservationDto = Omit<Reservation, "id">;
 
-const getMeetingRooms = () => {
+export const getMeetingRooms = () => {
   return ky.get("/api/rooms").json<Room[]>();
 };
 
-const getReservations = (date: string) => {
+export const getReservations = (date: string) => {
   return ky.get(`/api/reservations?date=${date}`).json<Reservation[]>();
 };
 
-const postReservation = (reservation: PostReservationDto) => {
+export const postReservation = (reservation: PostReservationDto) => {
   return ky
     .post("/api/reservations", {
       json: reservation,
@@ -73,7 +126,7 @@ const postReservation = (reservation: PostReservationDto) => {
     .json<{ ok: boolean; code: string; message: string }>();
 };
 
-const timeToMinutes = (time: string): number => {
+export const timeToMinutes = (time: string): number => {
   if (!time) return 0;
   const [hours, minutes] = time.split(":").map(Number);
   return hours * 60 + minutes;
@@ -135,7 +188,7 @@ const bookingSchema = z
     },
   );
 
-type BookingFormData = z.infer<typeof bookingSchema>;
+export type BookingFormData = z.infer<typeof bookingSchema>;
 
 const filterAvailableRooms = (rooms: Room[], reservations: Reservation[], formValues: BookingFormData): Room[] => {
   return rooms.filter((room) => {
@@ -363,22 +416,24 @@ export function BookingTab() {
                 return (
                   <RoomList
                     rooms={availableRooms}
-                    renderItem={(room) => <RoomSelect
-                      key={room.id}
-                      name={room.name}
-                      floor={room.floor}
-                      capacity={room.capacity}
-                      equipments={room.equipments}
-                      onSelect={() => setSelectedRoom(room as Room)}
-                      selected={selectedRoom?.id === room.id} />}
+                    renderItem={(room) => (
+                      <RoomSelect
+                        key={room.id}
+                        name={room.name}
+                        floor={room.floor}
+                        capacity={room.capacity}
+                        equipments={room.equipments}
+                        onSelect={() => setSelectedRoom(room as Room)}
+                        selected={selectedRoom?.id === room.id}
+                      />
+                    )}
                   />
                 );
               }}
             </SuspenseQueries>
           </Suspense>
 
-          <Mutation
-            mutationFn={(data: PostReservationDto) => postReservation(data)}
+          <ReservationSubmitButton
             onSuccess={() => {
               queryClient.invalidateQueries({
                 queryKey: ["reservations", formatTOYYYYMMDD(reservationStateDate)],
@@ -388,14 +443,8 @@ export function BookingTab() {
                 queryKey: ["meeting-rooms"],
               });
 
-              toast({
-                title: "예약 완료",
-                description: "회의실이 성공적으로 예약되었습니다",
-                duration: 3000,
-              });
-
-              form.reset();
               setSelectedRoom(null);
+              form.reset();
             }}
             onError={(error: Error) => {
               toast({
@@ -405,89 +454,16 @@ export function BookingTab() {
                 duration: 5000,
               });
             }}
-          >
-            {(mutation) => (
-              <Button
-                size="lg"
-                disabled={!selectedRoom || mutation.isPending}
-                onClick={() => {
-                  const startTime = form.watch("startTime");
-                  const endTime = form.watch("endTime");
-
-                  const validateTime = (): { valid: boolean; message?: string } => {
-                    if (!startTime || !endTime) {
-                      return {
-                        valid: false,
-                        message: "시작 시간과 종료 시간을 모두 선택해주세요",
-                      };
-                    }
-
-                    const start = timeToMinutes(startTime);
-                    const end = timeToMinutes(endTime);
-
-                    if (start < BUSINESS_HOURS.START_MINUTES || start > BUSINESS_HOURS.END_MINUTES) {
-                      return {
-                        valid: false,
-                        message: `시작 시간은 ${BUSINESS_HOURS.START} ~ ${BUSINESS_HOURS.END} 사이여야 합니다`,
-                      };
-                    }
-
-                    if (end < BUSINESS_HOURS.START_MINUTES || end > BUSINESS_HOURS.END_MINUTES) {
-                      return {
-                        valid: false,
-                        message: `종료 시간은 ${BUSINESS_HOURS.START} ~ ${BUSINESS_HOURS.END} 사이여야 합니다`,
-                      };
-                    }
-
-                    if (end <= start) {
-                      return {
-                        valid: false,
-                        message: "종료 시간은 시작 시간보다 늦어야 합니다",
-                      };
-                    }
-
-                    const duration = end - start;
-                    if (duration < 30) {
-                      return {
-                        valid: false,
-                        message: "최소 30분 이상 예약해야 합니다",
-                      };
-                    }
-
-                    return { valid: true };
-                  };
-
-                  const timeValidation = validateTime();
-                  if (!timeValidation.valid) {
-                    toast({
-                      description: timeValidation.message,
-                      duration: 1000,
-                    });
-                    return;
-                  }
-
-                  if (!selectedRoom) {
-                    toast({
-                      description: "예약할 회의실을 선택해주세요",
-                      duration: 1000,
-                    });
-                    return;
-                  }
-
-                  mutation.mutate({
-                    roomId: selectedRoom.id,
-                    date: formatTOYYYYMMDD(reservationStateDate),
-                    start: form.watch("startTime"),
-                    end: form.watch("endTime"),
-                    attendees: form.watch("attendees"),
-                    equipments: form.watch("equipments"),
-                  });
-                }}
-              >
-                {mutation.isPending ? "예약 중..." : "예약하기"}
-              </Button>
-            )}
-          </Mutation>
+            validateReservation={validateReservation(form.watch(), selectedRoom)}
+            postContent={{
+              roomId: selectedRoom?.id ?? "",
+              date: formatTOYYYYMMDD(reservationStateDate),
+              start: form.watch("startTime"),
+              end: form.watch("endTime"),
+              attendees: form.watch("attendees"),
+              equipments: form.watch("equipments"),
+            }}
+          />
         </CardContent>
       </Card>
     </div>
