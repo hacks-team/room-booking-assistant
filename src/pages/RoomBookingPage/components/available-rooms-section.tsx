@@ -8,8 +8,9 @@ import { Equipment, Reservation, Room } from "../types/types";
 import { ReservationSubmitButton } from "./reservation-submit-button";
 import { useQueryClient } from "@tanstack/react-query";
 import { BookingFormData } from "./booking-tab";
-import { UseFormReturn } from "react-hook-form";
+import { UseFormReturn, useFormContext } from "react-hook-form";
 import { toast } from "@/hooks/use-toast";
+
 
 export const BUSINESS_HOURS = {
     START: "09:00",
@@ -18,7 +19,9 @@ export const BUSINESS_HOURS = {
     END_MINUTES: 20 * 60,
 };
 
-export function AvailableRoomsSection({ form, reservationStateDate }: { form: UseFormReturn<BookingFormData>, reservationStateDate: Date }) {
+export function AvailableRoomsSection({ reservationStateDate }: { reservationStateDate: Date }) {
+    const form = useFormContext<BookingFormData>();
+
     const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
 
     const queryClient = useQueryClient();

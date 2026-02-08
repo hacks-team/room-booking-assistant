@@ -9,6 +9,7 @@ import { formatTOYYYYMMDD, timeToMinutes } from "../lib/lib";
 import { ReservationStateList } from "./resevation-state-list";
 import { ReservationFilter } from "./reservation-filter";
 import { AvailableRoomsSection } from "./available-rooms-section";
+import { FormProvider } from "react-hook-form";
 
 const bookingSchema = z
   .object({
@@ -37,21 +38,21 @@ const bookingSchema = z
 
 export type BookingFormData = z.infer<typeof bookingSchema>;
 
+const form = useForm<BookingFormData>({
+  resolver: zodResolver(bookingSchema),
+  mode: "onChange",
+  defaultValues: {
+    date: formatTOYYYYMMDD(new Date()),
+    startTime: "",
+    endTime: "",
+    attendees: 1,
+    equipments: [],
+    floor: "all",
+  },
+});
+
 export function BookingTab() {
   const [reservationStateDate, setReservationStateDate] = useQueryState("date", parseAsIsoDate.withDefault(new Date()));
-
-  const form = useForm<BookingFormData>({
-    resolver: zodResolver(bookingSchema),
-    mode: "onChange",
-    defaultValues: {
-      date: formatTOYYYYMMDD(new Date()),
-      startTime: "",
-      endTime: "",
-      attendees: 1,
-      equipments: [],
-      floor: "all",
-    },
-  });
 
   return (
     <div className="space-y-6">
@@ -70,26 +71,27 @@ export function BookingTab() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>예약 조건</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ReservationFilter form={form} />
-        </CardContent>
-      </Card>
+      <FormProvider {...form}>
+        <Card>
+          <CardHeader>
+            <CardTitle>예약 조건</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ReservationFilter />
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>예약 가능한 회의실</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <AvailableRoomsSection
-            form={form}
-            reservationStateDate={reservationStateDate}
-          />
-        </CardContent>
-      </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>예약 가능한 회의실</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AvailableRoomsSection
+              reservationStateDate={reservationStateDate}
+            />
+          </CardContent>
+        </Card>
+      </FormProvider>
     </div>
   );
 }

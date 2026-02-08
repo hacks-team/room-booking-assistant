@@ -7,8 +7,11 @@ import { SelectField } from "@/components/select-field";
 import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tv, Presentation, Video, Volume2 } from "lucide-react";
+import { useFormContext } from "react-hook-form";
 
-export function ReservationFilter({ form }: { form: UseFormReturn<BookingFormData> }) {
+export function ReservationFilter() {
+    const form = useFormContext<BookingFormData>();
+
     return (
         <>
             <Controller
