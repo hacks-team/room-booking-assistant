@@ -1,30 +1,29 @@
 import { Tv, Presentation, Video, Volume2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import ky from "ky";
 import { z } from "zod";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { parseAsIsoDate, useQueryState } from "nuqs";
 import { SuspenseQueries } from "@suspensive/react-query";
-import { ErrorBoundary } from "@suspensive/react";
 import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { InputField } from "@/components/input-field";
-import { SubCard } from "@/components/ui/sub-card";
 import { SelectField } from "@/components/select-field";
 import { DateField } from "@/components/date-field";
 import { RoomSelect } from "./room-select";
-import { format } from "date-fns";
-import { queryOptions, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Suspense, useState } from "react";
 import { toast } from "@/hooks/use-toast";
-import { RoomCard } from "./room-card";
 import { RoomList } from "./room-list";
 import { ReservationSubmitButton } from "./reservation-submit-button";
+import { Equipment, Room, Reservation } from "../types/types";
+import { formatTOYYYYMMDD, timeToMinutes } from "../lib/lib";
+import { useMeetingRooms, useReservations } from "../queries/queries";
+import { ReservationStateList } from "./resevation-state-list";
 
 const validateReservation = (
   formValues: BookingFormData,
-  selectedRoom: Room | null
+  selectedRoom: Room | null,
 ): { valid: boolean; message?: string } => {
   if (!selectedRoom) {
     return {
@@ -75,59 +74,11 @@ const validateReservation = (
   return { valid: true };
 };
 
-export const formatTOYYYYMMDD = (date: Date) => {
-  return format(date, "yyyy-MM-dd");
-};
-
 export const BUSINESS_HOURS = {
   START: "09:00",
   END: "20:00",
-  START_MINUTES: 540,
-  END_MINUTES: 1140,
-};
-
-export type Equipment = "tv" | "whiteboard" | "video" | "speaker";
-
-export type Room = {
-  id: string;
-  name: string;
-  floor: number;
-  capacity: number;
-  equipments: Equipment[];
-};
-
-export type Reservation = {
-  id: string;
-  roomId: string;
-  date: string;
-  start: string;
-  end: string;
-  attendees: number;
-  equipments: Equipment[] | undefined;
-};
-
-export type PostReservationDto = Omit<Reservation, "id">;
-
-export const getMeetingRooms = () => {
-  return ky.get("/api/rooms").json<Room[]>();
-};
-
-export const getReservations = (date: string) => {
-  return ky.get(`/api/reservations?date=${date}`).json<Reservation[]>();
-};
-
-export const postReservation = (reservation: PostReservationDto) => {
-  return ky
-    .post("/api/reservations", {
-      json: reservation,
-    })
-    .json<{ ok: boolean; code: string; message: string }>();
-};
-
-export const timeToMinutes = (time: string): number => {
-  if (!time) return 0;
-  const [hours, minutes] = time.split(":").map(Number);
-  return hours * 60 + minutes;
+  START_MINUTES: 9 * 60,
+  END_MINUTES: 20 * 60,
 };
 
 const generateTimeOptions = (
@@ -191,7 +142,9 @@ export type BookingFormData = z.infer<typeof bookingSchema>;
 const filterAvailableRooms = (rooms: Room[], reservations: Reservation[], formValues: BookingFormData): Room[] => {
   return rooms.filter((room) => {
     const capacityMatch = room.capacity >= formValues.attendees;
-    const equipmentMatch = formValues.equipments?.every((equipment) => room.equipments.includes(equipment as Equipment));
+    const equipmentMatch = formValues.equipments?.every((equipment) =>
+      room.equipments.includes(equipment as Equipment),
+    );
     const selectedFloor = formValues.floor;
     const floorMatch = selectedFloor === "all" || room.floor === Number(formValues.floor);
 
@@ -213,20 +166,6 @@ const filterAvailableRooms = (rooms: Room[], reservations: Reservation[], formVa
 export function BookingTab() {
   const [reservationStateDate, setReservationStateDate] = useQueryState("date", parseAsIsoDate.withDefault(new Date()));
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
-
-  const useMeetingRooms = () => {
-    return queryOptions({
-      queryKey: ["meeting-rooms"],
-      queryFn: () => getMeetingRooms(),
-    });
-  };
-
-  const useReservations = (date: string) => {
-    return queryOptions({
-      queryKey: ["reservations", date],
-      queryFn: () => getReservations(date),
-    });
-  };
 
   const queryClient = useQueryClient();
 
@@ -256,30 +195,7 @@ export function BookingTab() {
             value={reservationStateDate}
             onSelect={(selectedDate) => setReservationStateDate(selectedDate ?? new Date())}
           />
-          <ErrorBoundary fallback={({ error }) => <>{error.message}</>}>
-            <Suspense fallback={<div>Loading...</div>}>
-              <SuspenseQueries
-                queries={[useMeetingRooms(), useReservations(formatTOYYYYMMDD(reservationStateDate))]}
-              >
-                {([{ data: rooms }, { data: reservations }]) => {
-
-                  return (
-                    <RoomList
-                      rooms={rooms}
-                      renderItem={(room) => {
-                        const roomReservations = reservations.filter((reservation) => reservation.roomId === room.id);
-                        return (
-                          <SubCard key={room.id}>
-                            <RoomCard room={room} roomReservations={roomReservations} />
-                          </SubCard>
-                        )
-                      }}
-                    />
-                  );
-                }}
-              </SuspenseQueries>
-            </Suspense>
-          </ErrorBoundary>
+          <ReservationStateList reservationStateDate={reservationStateDate} />
         </CardContent>
       </Card>
 

@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { SubCardContent, SubCardHeader } from "@/components/ui/sub-card";
-import { Reservation, Room } from "./booking-tab";
+import { Reservation, Room } from "../types/types";
 
 export function RoomCard({ room, roomReservations }: { room: Room; roomReservations: Reservation[] }) {
   return (
