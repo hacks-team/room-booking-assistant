@@ -1,7 +1,6 @@
 import { DateField } from "@/components/date-field";
 import { InputField } from "@/components/input-field";
 import { SelectField } from "@/components/select-field";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -16,7 +15,7 @@ import { Controller, useForm } from "react-hook-form";
 import { useSearchParams } from "react-router-dom";
 import { z } from "zod";
 
-import { MeetingRoomCard } from "../ui/meeting-room-card";
+import { MeetingRoom } from "../ui/meeting-room-card";
 
 const bookingSchema = z
   .object({
@@ -193,20 +192,23 @@ export function BookingTab() {
         <CardContent>
           <DateField label="날짜 선택" value={selectedDate} onSelect={handleDateChange} />
 
-          {[...new Set(reservations.map((r) => r.roomId))].map((roomId) => {
-            const room = rooms.find((r) => r.id === roomId);
-            const roomReservations = reservations.filter((r) => r.roomId === roomId);
-            const startTime = roomReservations[0].start
-            const endTime = roomReservations[0].end
-            return (
-              <MeetingRoomCard key={roomId}>
-                <MeetingRoomCard.Name>{room?.name ?? roomId}</MeetingRoomCard.Name>
-                <MeetingRoomCard.Row>
-                  <MeetingRoomCard.Badges items={[`${startTime} - ${endTime}`]} variant="outline" />
-                </MeetingRoomCard.Row>
-              </MeetingRoomCard>
-            );
-          })}
+          <MeetingRoom
+            items={[...new Set(reservations.map((r) => r.roomId))]}
+            renderItem={(roomId) => {
+              const room = rooms.find((r) => r.id === roomId);
+              const roomReservations = reservations.filter((r) => r.roomId === roomId);
+              const startTime = roomReservations[0].start;
+              const endTime = roomReservations[0].end;
+              return (
+                <MeetingRoom.Card key={roomId}>
+                  <MeetingRoom.Card.Name>{room?.name ?? roomId}</MeetingRoom.Card.Name>
+                  <MeetingRoom.Card.Row>
+                    <MeetingRoom.Card.Badges items={[`${startTime} - ${endTime}`]} variant="outline" />
+                  </MeetingRoom.Card.Row>
+                </MeetingRoom.Card>
+              );
+            }}
+          />
         </CardContent>
       </Card>
 
@@ -330,22 +332,25 @@ export function BookingTab() {
         </CardHeader>
         <CardContent>
           {availableRooms.length > 0 ? (
-            availableRooms.map((room) => (
-              <MeetingRoomCard
-                key={room.id}
-                selected={selectedRoomId === room.id}
-                onSelect={() => setSelectedRoomId(room.id)}
-              >
-                <MeetingRoomCard.Name>{room.name}</MeetingRoomCard.Name>
-                <MeetingRoomCard.Row>
-                  <MeetingRoomCard.Info icon={Building2}>{room.floor}층</MeetingRoomCard.Info>
-                  <MeetingRoomCard.Info icon={Users}>{room.capacity}명</MeetingRoomCard.Info>
-                </MeetingRoomCard.Row>
-                <MeetingRoomCard.Row>
-                  <MeetingRoomCard.Badges items={room.equipments} variant="outline" />
-                </MeetingRoomCard.Row>
-              </MeetingRoomCard>
-            ))
+            <MeetingRoom
+              items={availableRooms}
+              renderItem={(room) => (
+                <MeetingRoom.Card
+                  key={room.id}
+                  selected={selectedRoomId === room.id}
+                  onSelect={() => setSelectedRoomId(room.id)}
+                >
+                  <MeetingRoom.Card.Name>{room.name}</MeetingRoom.Card.Name>
+                  <MeetingRoom.Card.Row>
+                    <MeetingRoom.Card.Info icon={Building2}>{room.floor}층</MeetingRoom.Card.Info>
+                    <MeetingRoom.Card.Info icon={Users}>{room.capacity}명</MeetingRoom.Card.Info>
+                  </MeetingRoom.Card.Row>
+                  <MeetingRoom.Card.Row>
+                    <MeetingRoom.Card.Badges items={room.equipments} variant="outline" />
+                  </MeetingRoom.Card.Row>
+                </MeetingRoom.Card>
+              )}
+            />
           ) : (
             <p className="text-sm text-muted-foreground">조건에 맞는 회의실이 없습니다.</p>
           )}

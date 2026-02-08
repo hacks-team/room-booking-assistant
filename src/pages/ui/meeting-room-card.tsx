@@ -5,6 +5,16 @@ import type { VariantProps } from "class-variance-authority";
 import type { LucideIcon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 
+function MeetingRoomList<T>({
+  items,
+  renderItem,
+}: {
+  items: T[];
+  renderItem: (item: T) => ReactNode;
+}) {
+  return <>{items.map(renderItem)}</>;
+}
+
 interface MeetingRoomCardRootProps extends ComponentProps<"div"> {
   selected?: boolean;
   onSelect?: () => void;
@@ -25,11 +35,11 @@ function MeetingRoomCardRoot({
       onKeyDown={
         onSelect
           ? (e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onSelect();
-              }
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onSelect();
             }
+          }
           : undefined
       }
       className={cn(
@@ -93,4 +103,13 @@ const MeetingRoomCard = Object.assign(MeetingRoomCardRoot, {
   Badges: MeetingRoomCardBadges,
 });
 
-export { MeetingRoomCard };
+interface MeetingRoomComponent {
+  <T>(props: { items: T[]; renderItem: (item: T) => ReactNode }): ReactNode;
+  Card: typeof MeetingRoomCard;
+}
+
+const MeetingRoom: MeetingRoomComponent = Object.assign(MeetingRoomList, {
+  Card: MeetingRoomCard,
+});
+
+export { MeetingRoom };

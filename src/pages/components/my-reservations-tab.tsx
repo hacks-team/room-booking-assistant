@@ -4,7 +4,7 @@ import type { DeleteReservationResponse, Reservation, Room } from "@/src/types";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Calendar, Clock, Trash2, Users } from "lucide-react";
 
-import { MeetingRoomCard } from "../ui/meeting-room-card";
+import { MeetingRoom } from "../ui/meeting-room-card";
 
 export function MyReservationsTab() {
   const { toast } = useToast();
@@ -51,29 +51,32 @@ export function MyReservationsTab() {
 
   return (
     <div className="space-y-4">
-      {reservations.map((reservation) => (
-        <MeetingRoomCard key={reservation.id}>
-          <MeetingRoomCard.Name>
-            {getRoomName(reservation.roomId)}
-          </MeetingRoomCard.Name>
-          <MeetingRoomCard.Row>
-            <MeetingRoomCard.Info icon={Calendar}>{reservation.date}</MeetingRoomCard.Info>
-            <MeetingRoomCard.Info icon={Clock}>{reservation.start} - {reservation.end}</MeetingRoomCard.Info>
-            <MeetingRoomCard.Info icon={Users}>{reservation.attendees}명</MeetingRoomCard.Info>
-          </MeetingRoomCard.Row>
-          <MeetingRoomCard.Row>
-            <MeetingRoomCard.Badges items={reservation.equipments} variant="secondary" />
-          </MeetingRoomCard.Row>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => cancelMutation.mutate(reservation.id)}
-          >
-            <Trash2 className="mr-1 h-4 w-4" />
-            취소
-          </Button>
-        </MeetingRoomCard>
-      ))}
+      <MeetingRoom
+        items={reservations}
+        renderItem={(reservation) => (
+          <MeetingRoom.Card key={reservation.id}>
+            <MeetingRoom.Card.Name>
+              {getRoomName(reservation.roomId)}
+            </MeetingRoom.Card.Name>
+            <MeetingRoom.Card.Row>
+              <MeetingRoom.Card.Info icon={Calendar}>{reservation.date}</MeetingRoom.Card.Info>
+              <MeetingRoom.Card.Info icon={Clock}>{reservation.start} - {reservation.end}</MeetingRoom.Card.Info>
+              <MeetingRoom.Card.Info icon={Users}>{reservation.attendees}명</MeetingRoom.Card.Info>
+            </MeetingRoom.Card.Row>
+            <MeetingRoom.Card.Row>
+              <MeetingRoom.Card.Badges items={reservation.equipments} variant="secondary" />
+            </MeetingRoom.Card.Row>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => cancelMutation.mutate(reservation.id)}
+            >
+              <Trash2 className="mr-1 h-4 w-4" />
+              취소
+            </Button>
+          </MeetingRoom.Card>
+        )}
+      />
     </div>
   );
 }
