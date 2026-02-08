@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { parseAsIsoDate, useQueryState } from "nuqs";
 import { Mutation, SuspenseQueries } from "@suspensive/react-query";
-import { ErrorBoundary } from '@suspensive/react'
+import { ErrorBoundary } from "@suspensive/react";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,8 @@ import { format } from "date-fns";
 import { queryOptions, useQueryClient } from "@tanstack/react-query";
 import { Suspense, useState } from "react";
 import { toast } from "@/hooks/use-toast";
+import { RoomCard } from "./room-card";
+import { RoomList } from "./room-list";
 
 const BUSINESS_HOURS = {
   START: "09:00",
@@ -29,9 +31,9 @@ const BUSINESS_HOURS = {
   END_MINUTES: 1140,
 };
 
-type Equipment = "tv" | "whiteboard" | "video" | "speaker";
+export type Equipment = "tv" | "whiteboard" | "video" | "speaker";
 
-type Room = {
+export type Room = {
   id: string;
   name: string;
   floor: number;
@@ -39,7 +41,7 @@ type Room = {
   equipments: Equipment[];
 };
 
-type Reservation = {
+export type Reservation = {
   id: string;
   roomId: string;
   date: string;
@@ -179,32 +181,23 @@ export function BookingTab() {
           />
           <ErrorBoundary fallback={({ error }) => <>{error.message}</>}>
             <Suspense fallback={<div>Loading...</div>}>
-              <SuspenseQueries queries={[useMeetingRooms(), useReservations(format(reservationStateDate, "yyyy-MM-dd"))]}>
+              <SuspenseQueries
+                queries={[useMeetingRooms(), useReservations(format(reservationStateDate, "yyyy-MM-dd"))]}
+              >
                 {([{ data: rooms }, { data: reservations }]) => {
-                  return (
-                    <>
-                      {rooms.map((room) => {
-                        const roomReservations = reservations.filter((reservation) => reservation.roomId === room.id);
 
+                  return (
+                    <RoomList
+                      rooms={rooms}
+                      renderItem={(room) => {
+                        const roomReservations = reservations.filter((reservation) => reservation.roomId === room.id);
                         return (
                           <SubCard key={room.id}>
-                            <SubCardHeader>{room.name}</SubCardHeader>
-                            <SubCardContent>
-                              {roomReservations.length > 0 ? (
-                                roomReservations.map((reservation) => (
-                                  <Badge
-                                    key={reservation.id}
-                                    variant="outline"
-                                  >{`${reservation.start} - ${reservation.end}`}</Badge>
-                                ))
-                              ) : (
-                                <p className="text-muted-foreground text-sm">예약 없음</p>
-                              )}
-                            </SubCardContent>
+                            <RoomCard room={room} roomReservations={roomReservations} />
                           </SubCard>
-                        );
-                      })}
-                    </>
+                        )
+                      }}
+                    />
                   );
                 }}
               </SuspenseQueries>
