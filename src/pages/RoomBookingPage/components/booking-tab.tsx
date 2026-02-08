@@ -82,7 +82,7 @@ export function BookingTab() {
             <CardTitle>예약 가능한 회의실</CardTitle>
           </CardHeader>
           <CardContent>
-            <AvailableRoomsSection reservationStateDate={reservationStateDate} />
+            <AvailableRoomsSection setReservationStateDate={setReservationStateDate} />
           </CardContent>
         </Card>
       </FormProvider>

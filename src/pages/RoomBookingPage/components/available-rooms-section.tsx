@@ -18,7 +18,7 @@ export const BUSINESS_HOURS = {
   END_MINUTES: 20 * 60,
 };
 
-export function AvailableRoomsSection({ reservationStateDate }: { reservationStateDate: Date }) {
+export function AvailableRoomsSection({ setReservationStateDate }: { setReservationStateDate: (date: Date) => void }) {
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
 
   const form = useFormContext<BookingFormData>();
@@ -28,7 +28,7 @@ export function AvailableRoomsSection({ reservationStateDate }: { reservationSta
   return (
     <>
       <Suspense fallback={<div>Loading...</div>}>
-        <SuspenseQueries queries={[useMeetingRooms(), useReservations(formatTOYYYYMMDD(reservationStateDate))]}>
+        <SuspenseQueries queries={[useMeetingRooms(), useReservations(form.watch("date"))]}>
           {([{ data: rooms }, { data: reservations }]) => {
             const availableRooms = filterAvailableRooms(rooms, reservations, form.watch());
             return (
@@ -54,7 +54,7 @@ export function AvailableRoomsSection({ reservationStateDate }: { reservationSta
       <ReservationSubmitButton
         onSuccess={() => {
           queryClient.invalidateQueries({
-            queryKey: ["reservations", formatTOYYYYMMDD(reservationStateDate)],
+            queryKey: ["reservations", form.watch("date")],
           });
 
           queryClient.invalidateQueries({
@@ -62,6 +62,7 @@ export function AvailableRoomsSection({ reservationStateDate }: { reservationSta
           });
 
           setSelectedRoom(null);
+          setReservationStateDate(new Date(form.watch("date")));
           form.reset();
         }}
         onError={(error: Error) => {
@@ -74,7 +75,7 @@ export function AvailableRoomsSection({ reservationStateDate }: { reservationSta
         validateReservation={validateReservation(form.watch(), selectedRoom)}
         postContent={{
           roomId: selectedRoom?.id ?? "",
-          date: formatTOYYYYMMDD(reservationStateDate),
+          date: form.watch("date"),
           start: form.watch("startTime"),
           end: form.watch("endTime"),
           attendees: form.watch("attendees"),
