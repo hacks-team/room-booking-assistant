@@ -24,6 +24,10 @@ import { toast } from "@/hooks/use-toast";
 import { RoomCard } from "./room-card";
 import { RoomList } from "./room-list";
 
+const formatTOYYYYMMDD = (date: Date) => {
+  return format(date, "yyyy-MM-dd");
+};
+
 const BUSINESS_HOURS = {
   START: "09:00",
   END: "20:00",
@@ -157,7 +161,7 @@ export function BookingTab() {
     resolver: zodResolver(bookingSchema),
     mode: "onChange",
     defaultValues: {
-      date: format(new Date(), "yyyy-MM-dd"),
+      date: formatTOYYYYMMDD(new Date()),
       startTime: "",
       endTime: "",
       attendees: 1,
@@ -182,7 +186,7 @@ export function BookingTab() {
           <ErrorBoundary fallback={({ error }) => <>{error.message}</>}>
             <Suspense fallback={<div>Loading...</div>}>
               <SuspenseQueries
-                queries={[useMeetingRooms(), useReservations(format(reservationStateDate, "yyyy-MM-dd"))]}
+                queries={[useMeetingRooms(), useReservations(formatTOYYYYMMDD(reservationStateDate))]}
               >
                 {([{ data: rooms }, { data: reservations }]) => {
 
@@ -218,7 +222,7 @@ export function BookingTab() {
               <DateField
                 label="날짜"
                 value={new Date(field.value)}
-                onSelect={(date) => field.onChange(format(date ?? new Date(), "yyyy-MM-dd"))}
+                onSelect={(date) => field.onChange(formatTOYYYYMMDD(date ?? new Date()))}
               />
             )}
           />
@@ -331,7 +335,7 @@ export function BookingTab() {
         </CardHeader>
         <CardContent>
           <Suspense fallback={<div>Loading...</div>}>
-            <SuspenseQueries queries={[useMeetingRooms(), useReservations(format(reservationStateDate, "yyyy-MM-dd"))]}>
+            <SuspenseQueries queries={[useMeetingRooms(), useReservations(formatTOYYYYMMDD(reservationStateDate))]}>
               {([{ data: rooms }, { data: reservations }]) => {
                 const availableRooms = rooms.filter((room) => {
                   const capacityMatch = room.capacity >= form.watch("attendees");
@@ -378,7 +382,7 @@ export function BookingTab() {
             mutationFn={(data: PostReservationDto) => postReservation(data)}
             onSuccess={() => {
               queryClient.invalidateQueries({
-                queryKey: ["reservations", format(reservationStateDate, "yyyy-MM-dd")],
+                queryKey: ["reservations", formatTOYYYYMMDD(reservationStateDate)],
               });
 
               queryClient.invalidateQueries({
@@ -473,7 +477,7 @@ export function BookingTab() {
 
                   mutation.mutate({
                     roomId: selectedRoom.id,
-                    date: format(reservationStateDate, "yyyy-MM-dd"),
+                    date: formatTOYYYYMMDD(reservationStateDate),
                     start: form.watch("startTime"),
                     end: form.watch("endTime"),
                     attendees: form.watch("attendees"),
