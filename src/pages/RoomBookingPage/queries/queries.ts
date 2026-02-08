@@ -16,8 +16,8 @@ export const useReservations = (date: string) => {
 };
 
 export const useMyReservations = () => {
-    return queryOptions({
-      queryKey: ["my-reservations"],
-      queryFn: () => getMyReservations(),
-    });
-  };
+  return queryOptions({
+    queryKey: ["my-reservations"],
+    queryFn: () => getMyReservations(),
+  });
+};

@@ -8,31 +8,40 @@ import { SubCard } from "@/components/ui/sub-card";
 import { RoomCard } from "./room-card";
 
 export function ReservationStateList({
-    reservationStateDate,
+  reservationStateDate,
+  setReservationStateDate,
 }: {
-    reservationStateDate: Date;
+  reservationStateDate: Date;
+  setReservationStateDate: (date: Date) => void;
 }) {
-    return (
-        <ErrorBoundary fallback={({ error }) => <>{error.message}</>}>
-            <Suspense fallback={<div>Loading...</div>}>
-                <SuspenseQueries queries={[useMeetingRooms(), useReservations(formatTOYYYYMMDD(reservationStateDate))]}>
-                    {([{ data: rooms }, { data: reservations }]) => {
-                        return (
-                            <RoomList
-                                rooms={rooms}
-                                renderItem={(room) => {
-                                    const roomReservations = reservations.filter((reservation) => reservation.roomId === room.id);
-                                    return (
-                                        <SubCard key={room.id}>
-                                            <RoomCard room={room} roomReservations={roomReservations} />
-                                        </SubCard>
-                                    );
-                                }}
-                            />
-                        );
-                    }}
-                </SuspenseQueries>
-            </Suspense>
-        </ErrorBoundary>
-    );
+  return (
+    <>
+      <DateField
+        label="날짜 선택"
+        value={reservationStateDate}
+        onSelect={(selectedDate) => setReservationStateDate(selectedDate ?? new Date())}
+      />
+      <ErrorBoundary fallback={({ error }) => <>{error.message}</>}>
+        <Suspense fallback={<div>Loading...</div>}>
+          <SuspenseQueries queries={[useMeetingRooms(), useReservations(formatTOYYYYMMDD(reservationStateDate))]}>
+            {([{ data: rooms }, { data: reservations }]) => {
+              return (
+                <RoomList
+                  rooms={rooms}
+                  renderItem={(room) => {
+                    const roomReservations = reservations.filter((reservation) => reservation.roomId === room.id);
+                    return (
+                      <SubCard key={room.id}>
+                        <RoomCard room={room} roomReservations={roomReservations} />
+                      </SubCard>
+                    );
+                  }}
+                />
+              );
+            }}
+          </SuspenseQueries>
+        </Suspense>
+      </ErrorBoundary>
+    </>
+  );
 }

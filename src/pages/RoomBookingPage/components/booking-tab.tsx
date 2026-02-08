@@ -1,10 +1,8 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { parseAsIsoDate, useQueryState } from "nuqs";
-import { DateField } from "@/components/date-field";
 import { formatTOYYYYMMDD, timeToMinutes } from "../lib/lib";
 import { ReservationStateList } from "./resevation-state-list";
 import { ReservationFilter } from "./reservation-filter";
@@ -38,21 +36,21 @@ const bookingSchema = z
 
 export type BookingFormData = z.infer<typeof bookingSchema>;
 
-const form = useForm<BookingFormData>({
-  resolver: zodResolver(bookingSchema),
-  mode: "onChange",
-  defaultValues: {
-    date: formatTOYYYYMMDD(new Date()),
-    startTime: "",
-    endTime: "",
-    attendees: 1,
-    equipments: [],
-    floor: "all",
-  },
-});
-
 export function BookingTab() {
   const [reservationStateDate, setReservationStateDate] = useQueryState("date", parseAsIsoDate.withDefault(new Date()));
+
+  const bookingForm = useForm<BookingFormData>({
+    resolver: zodResolver(bookingSchema),
+    mode: "onChange",
+    defaultValues: {
+      date: formatTOYYYYMMDD(new Date()),
+      startTime: "",
+      endTime: "",
+      attendees: 1,
+      equipments: [],
+      floor: "all",
+    },
+  });
 
   return (
     <div className="space-y-6">
@@ -62,16 +60,14 @@ export function BookingTab() {
         </CardHeader>
 
         <CardContent>
-          <DateField
-            label="날짜 선택"
-            value={reservationStateDate}
-            onSelect={(selectedDate) => setReservationStateDate(selectedDate ?? new Date())}
+          <ReservationStateList
+            reservationStateDate={reservationStateDate}
+            setReservationStateDate={setReservationStateDate}
           />
-          <ReservationStateList reservationStateDate={reservationStateDate} />
         </CardContent>
       </Card>
 
-      <FormProvider {...form}>
+      <FormProvider {...bookingForm}>
         <Card>
           <CardHeader>
             <CardTitle>예약 조건</CardTitle>
@@ -86,9 +82,7 @@ export function BookingTab() {
             <CardTitle>예약 가능한 회의실</CardTitle>
           </CardHeader>
           <CardContent>
-            <AvailableRoomsSection
-              reservationStateDate={reservationStateDate}
-            />
+            <AvailableRoomsSection reservationStateDate={reservationStateDate} />
           </CardContent>
         </Card>
       </FormProvider>
