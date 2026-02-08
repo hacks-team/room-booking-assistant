@@ -1,5 +1,5 @@
-import { BookingTab } from "@/src/pages/components/booking-tab";
-import { MyReservationsTab } from "@/src/pages/components/my-reservations-tab";
+import { BookingTab } from "@/src/pages/RoomBookingPage/components/booking-tab";
+import { MyReservationsTab } from "@/src/pages/RoomBookingPage/components/my-reservations-tab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PropsWithChildren } from "react";
 
