@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { parseAsIsoDate, useQueryState } from "nuqs";
 import { Mutation, SuspenseQueries } from "@suspensive/react-query";
-
+import { ErrorBoundary } from '@suspensive/react'
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -177,37 +177,39 @@ export function BookingTab() {
             value={reservationStateDate}
             onSelect={(selectedDate) => setReservationStateDate(selectedDate ?? new Date())}
           />
-          <Suspense fallback={<div>Loading...</div>}>
-            <SuspenseQueries queries={[useMeetingRooms(), useReservations(format(reservationStateDate, "yyyy-MM-dd"))]}>
-              {([{ data: rooms }, { data: reservations }]) => {
-                return (
-                  <>
-                    {rooms.map((room) => {
-                      const roomReservations = reservations.filter((reservation) => reservation.roomId === room.id);
+          <ErrorBoundary fallback={({ error }) => <>{error.message}</>}>
+            <Suspense fallback={<div>Loading...</div>}>
+              <SuspenseQueries queries={[useMeetingRooms(), useReservations(format(reservationStateDate, "yyyy-MM-dd"))]}>
+                {([{ data: rooms }, { data: reservations }]) => {
+                  return (
+                    <>
+                      {rooms.map((room) => {
+                        const roomReservations = reservations.filter((reservation) => reservation.roomId === room.id);
 
-                      return (
-                        <SubCard key={room.id}>
-                          <SubCardHeader>{room.name}</SubCardHeader>
-                          <SubCardContent>
-                            {roomReservations.length > 0 ? (
-                              roomReservations.map((reservation) => (
-                                <Badge
-                                  key={reservation.id}
-                                  variant="outline"
-                                >{`${reservation.start} - ${reservation.end}`}</Badge>
-                              ))
-                            ) : (
-                              <p className="text-muted-foreground text-sm">예약 없음</p>
-                            )}
-                          </SubCardContent>
-                        </SubCard>
-                      );
-                    })}
-                  </>
-                );
-              }}
-            </SuspenseQueries>
-          </Suspense>
+                        return (
+                          <SubCard key={room.id}>
+                            <SubCardHeader>{room.name}</SubCardHeader>
+                            <SubCardContent>
+                              {roomReservations.length > 0 ? (
+                                roomReservations.map((reservation) => (
+                                  <Badge
+                                    key={reservation.id}
+                                    variant="outline"
+                                  >{`${reservation.start} - ${reservation.end}`}</Badge>
+                                ))
+                              ) : (
+                                <p className="text-muted-foreground text-sm">예약 없음</p>
+                              )}
+                            </SubCardContent>
+                          </SubCard>
+                        );
+                      })}
+                    </>
+                  );
+                }}
+              </SuspenseQueries>
+            </Suspense>
+          </ErrorBoundary>
         </CardContent>
       </Card>
 
@@ -462,7 +464,6 @@ export function BookingTab() {
                   const timeValidation = validateTime();
                   if (!timeValidation.valid) {
                     toast({
-                      variant: "destructive",
                       description: timeValidation.message,
                       duration: 1000,
                     });
