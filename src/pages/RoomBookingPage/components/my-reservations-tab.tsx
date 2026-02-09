@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import type { DeleteReservationResponse, Reservation, Room } from "@/src/types";
+import type { DeleteReservationResponse, Reservation, Room } from "@/src/pages/RoomBookingPage/types";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Calendar, Clock, Trash2, Users } from "lucide-react";
 

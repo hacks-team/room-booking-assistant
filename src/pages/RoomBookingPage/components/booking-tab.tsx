@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useToast } from "@/hooks/use-toast";
-import type { CreateReservationPayload, CreateReservationResponse, Equipment, Reservation, Room } from "@/src/types";
+import type { CreateReservationPayload, CreateReservationResponse, Equipment, Reservation, Room } from "@/src/pages/RoomBookingPage/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Building2, Presentation, Tv, Users, Video, Volume2 } from "lucide-react";
@@ -59,19 +59,48 @@ export function BookingTab() {
     queryFn: () => fetch("/api/rooms").then((res) => res.json()),
   });
 
-  // 예약 현황
   const [searchParams, setSearchParams] = useSearchParams();
-  const dateParam = searchParams.get("date") ?? formatDate(new Date());
-  const selectedDate = parseDate(dateParam);
-  const { data: reservations } = useSuspenseQuery<Reservation[]>({
-    queryKey: ["get/reservations", dateParam],
-    queryFn: () => fetch(`/api/reservations?date=${dateParam}`).then((res) => res.json()),
+
+  // 폼 상태 관리 (URL 검색 파라미터와 동기화)
+  const {
+    register,
+    control,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<BookingFormValues>({
+    resolver: zodResolver(bookingSchema),
+    defaultValues: {
+      date: searchParams.get("date") ?? formatDate(new Date()),
+      startTime: searchParams.get("startTime") ?? "",
+      endTime: searchParams.get("endTime") ?? "",
+      attendees: Number(searchParams.get("attendees")) || 1,
+      equipments: searchParams.get("equipments")?.split(",").filter(Boolean) ?? [],
+      floor: searchParams.get("floor") ?? "all",
+    },
+    mode: "onChange",
   });
-  const handleDateChange = (date?: Date) => {
-    if (date) {
-      setSearchParams({ date: formatDate(date) });
-    }
-  };
+
+  const { date, startTime, endTime, attendees, equipments, floor } = watch();
+  const equipmentsKey = equipments.join(",");
+
+  // 폼 값 → URL 검색 파라미터 동기화
+  useEffect(() => {
+    const params = new URLSearchParams();
+    params.set("date", date);
+    if (startTime) params.set("startTime", startTime);
+    if (endTime) params.set("endTime", endTime);
+    if (attendees > 1) params.set("attendees", String(attendees));
+    if (equipmentsKey) params.set("equipments", equipmentsKey);
+    if (floor !== "all") params.set("floor", floor);
+    setSearchParams(params, { replace: true });
+  }, [date, startTime, endTime, attendees, equipmentsKey, floor, setSearchParams]);
+
+  // 예약 현황
+  const { data: reservations } = useSuspenseQuery<Reservation[]>({
+    queryKey: ["get/reservations", date],
+    queryFn: () => fetch(`/api/reservations?date=${date}`).then((res) => res.json()),
+  });
 
   // 선호 층 옵션
   const floorOptions = [
@@ -80,27 +109,6 @@ export function BookingTab() {
       .sort((a, b) => a - b)
       .map((floor) => ({ label: `${floor}층`, value: String(floor) })),
   ];
-
-  // 폼 상태 관리
-  const {
-    register,
-    control,
-    watch,
-    formState: { errors },
-  } = useForm<BookingFormValues>({
-    resolver: zodResolver(bookingSchema),
-    defaultValues: {
-      date: formatDate(new Date()),
-      startTime: "",
-      endTime: "",
-      attendees: 1,
-      equipments: [],
-      floor: "all",
-    },
-    mode: "onChange",
-  });
-
-  const { startTime, endTime, attendees, equipments, floor } = watch();
 
   // 조건 1: 수용 인원
   const 인원충족 = (room: Room) => room.capacity >= attendees;
@@ -175,7 +183,7 @@ export function BookingTab() {
     }
     mutation.mutate({
       roomId: selectedRoomId,
-      date: dateParam,
+      date,
       start: startTime,
       end: endTime,
       attendees,
@@ -190,7 +198,7 @@ export function BookingTab() {
           <CardTitle>예약 현황</CardTitle>
         </CardHeader>
         <CardContent>
-          <DateField label="날짜 선택" value={selectedDate} onSelect={handleDateChange} />
+          <DateField label="날짜 선택" value={parseDate(date)} onSelect={(d) => d && setValue("date", formatDate(d))} />
 
           <MeetingRoom
             items={[...new Set(reservations.map((r) => r.roomId))]}
