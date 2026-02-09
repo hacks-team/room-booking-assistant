@@ -8,9 +8,15 @@ import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tv, Presentation, Video, Volume2 } from "lucide-react";
 import { useFormContext } from "react-hook-form";
+import { useQueryClient } from "@tanstack/react-query";
+import { Room } from "../types/types";
 
 export function ReservationFilter() {
   const form = useFormContext<BookingFormData>();
+
+  const queryClient = useQueryClient();
+
+  const rooms = queryClient.getQueryData<Room[]>(["meeting-rooms"]);
 
   return (
     <>
@@ -86,7 +92,7 @@ export function ReservationFilter() {
             placeholder="선택"
             value={field.value}
             onValueChange={field.onChange}
-            options={generateFloorOptions()}
+            options={generateFloorOptions(rooms ?? [])}
           />
         )}
       />
@@ -155,11 +161,14 @@ const generateTimeOptions = ({
   return options;
 };
 
-const generateFloorOptions = (maxFloor = 10): Array<{ label: string; value: string }> => {
-  const options: Array<{ label: string; value: string }> = [];
-  options.push({ label: "전체", value: "all" });
-  for (let i = 1; i <= maxFloor; i++) {
-    options.push({ label: `${i}층`, value: i.toString() });
-  }
-  return options;
+const generateFloorOptions = (rooms: Room[]): Array<{ label: string; value: string }> => {
+  const floors = Array.from(new Set(rooms.map((room) => room.floor))).sort((a, b) => a - b);
+
+  return [
+    { label: "전체", value: "all" },
+    ...floors.map((floor) => ({
+      label: `${floor}층`,
+      value: floor.toString(),
+    })),
+  ];
 };
