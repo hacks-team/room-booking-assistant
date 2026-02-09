@@ -52,12 +52,14 @@ function parseDate(dateStr: string) {
   return new Date(y, m - 1, d);
 }
 
-export function BookingTab() {
-  // 회의실 목록
-  const { data: rooms } = useSuspenseQuery<Room[]>({
-    queryKey: ["get/rooms"],
-    queryFn: () => fetch("/api/rooms").then((res) => res.json()),
-  });
+
+
+type Props = {
+    rooms : Room[]
+}
+
+export function BookingTab({rooms}:Props) {
+
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -193,32 +195,6 @@ export function BookingTab() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>예약 현황</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <DateField label="날짜 선택" value={parseDate(date)} onSelect={(d) => d && setValue("date", formatDate(d))} />
-
-          <MeetingRoom
-            items={[...new Set(reservations.map((r) => r.roomId))]}
-            renderItem={(roomId) => {
-              const room = rooms.find((r) => r.id === roomId);
-              const roomReservations = reservations.filter((r) => r.roomId === roomId);
-              const startTime = roomReservations[0].start;
-              const endTime = roomReservations[0].end;
-              return (
-                <MeetingRoom.Card key={roomId}>
-                  <MeetingRoom.Card.Name>{room?.name ?? roomId}</MeetingRoom.Card.Name>
-                  <MeetingRoom.Card.Row>
-                    <MeetingRoom.Card.Badges items={[`${startTime} - ${endTime}`]} variant="outline" />
-                  </MeetingRoom.Card.Row>
-                </MeetingRoom.Card>
-              );
-            }}
-          />
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader>
