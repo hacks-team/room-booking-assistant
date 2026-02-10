@@ -9,9 +9,13 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tv, Presentation, Video, Volume2 } from "lucide-react";
 import { useFormContext } from "react-hook-form";
 import { useQueryClient } from "@tanstack/react-query";
-import { Room } from "../types/types";
+import { Equipment, Room } from "../types/types";
 
-export function ReservationFilter() {
+export function ReservationFilter({
+  setQueryStates,
+}: {
+  setQueryStates: (queryStates: Record<string, string | number | string[]>) => void;
+}) {
   const form = useFormContext<BookingFormData>();
 
   const queryClient = useQueryClient();
@@ -27,7 +31,10 @@ export function ReservationFilter() {
           <DateField
             label="날짜"
             value={new Date(field.value)}
-            onSelect={(date) => field.onChange(formatTOYYYYMMDD(date ?? new Date()))}
+            onSelect={(date) => {
+              field.onChange(formatTOYYYYMMDD(date ?? new Date()));
+              setQueryStates({ date: formatTOYYYYMMDD(date ?? new Date()) });
+            }}
           />
         )}
       />
@@ -37,7 +44,16 @@ export function ReservationFilter() {
         control={form.control}
         render={({ field }) => (
           <div>
-            <InputField label="참석 인원" type="number" min={1} value={field.value} onChange={field.onChange} />
+            <InputField
+              label="참석 인원"
+              type="number"
+              min={1}
+              value={field.value}
+              onChange={(e) => {
+                field.onChange(Number(e.target.value));
+                setQueryStates({ attendees: Number(e.target.value) });
+              }}
+            />
             {form.formState.errors.attendees && (
               <p className="text-destructive text-sm mt-1">{form.formState.errors.attendees.message}</p>
             )}
@@ -55,7 +71,10 @@ export function ReservationFilter() {
               placeholder="선택"
               options={generateTimeOptions({ startHour: 9, endHour: 20, intervalMinutes: 30 })}
               value={field.value}
-              onValueChange={field.onChange}
+              onValueChange={(value) => {
+                field.onChange(value);
+                setQueryStates({ startTime: value });
+              }}
             />
             {form.formState.errors.startTime && (
               <p className="text-destructive text-sm mt-1">{form.formState.errors.startTime.message}</p>
@@ -74,7 +93,10 @@ export function ReservationFilter() {
               placeholder="선택"
               options={generateTimeOptions({ startHour: 9, endHour: 20, intervalMinutes: 30 })}
               value={field.value}
-              onValueChange={field.onChange}
+              onValueChange={(value) => {
+                field.onChange(value);
+                setQueryStates({ endTime: value });
+              }}
             />
             {form.formState.errors.endTime && (
               <p className="text-destructive text-sm mt-1">{form.formState.errors.endTime.message}</p>
@@ -91,7 +113,10 @@ export function ReservationFilter() {
             label="선호 층"
             placeholder="선택"
             value={field.value}
-            onValueChange={field.onChange}
+            onValueChange={(value) => {
+              field.onChange(value);
+              setQueryStates({ floor: value });
+            }}
             options={generateFloorOptions(rooms ?? [])}
           />
         )}
@@ -109,7 +134,10 @@ export function ReservationFilter() {
               spacing={2}
               size="sm"
               value={field.value}
-              onValueChange={field.onChange}
+              onValueChange={(value) => {
+                field.onChange(value as Equipment[]);
+                setQueryStates({ equipments: value as Equipment[] });
+              }}
             >
               <ToggleGroupItem value="tv">
                 <Tv className="h-4 w-4" />

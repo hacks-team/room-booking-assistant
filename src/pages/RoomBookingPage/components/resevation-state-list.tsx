@@ -6,24 +6,24 @@ import { formatTOYYYYMMDD } from "../lib/lib";
 import { RoomList } from "./room-list";
 import { SubCard } from "@/components/ui/sub-card";
 import { RoomCard } from "./room-card";
+import { parseAsIsoDate, parseAsString, useQueryState } from "nuqs";
 
-export function ReservationStateList({
-  reservationStateDate,
-  setReservationStateDate,
-}: {
-  reservationStateDate: Date;
-  setReservationStateDate: (date: Date) => void;
-}) {
+export function ReservationStateList() {
+  const [reservationStateDate, setReservationStateDate] = useQueryState(
+    "reservationStateDate",
+    parseAsString.withDefault(formatTOYYYYMMDD(new Date())),
+  );
+
   return (
     <>
       <DateField
         label="날짜 선택"
-        value={reservationStateDate}
-        onSelect={(selectedDate) => setReservationStateDate(selectedDate ?? new Date())}
+        value={new Date(reservationStateDate)}
+        onSelect={(selectedDate) => setReservationStateDate(formatTOYYYYMMDD(selectedDate ?? new Date()))}
       />
       <ErrorBoundary fallback={({ error }) => <>{error.message}</>}>
         <Suspense fallback={<div>Loading...</div>}>
-          <SuspenseQueries queries={[useMeetingRooms(), useReservations(formatTOYYYYMMDD(reservationStateDate))]}>
+          <SuspenseQueries queries={[useMeetingRooms(), useReservations(reservationStateDate)]}>
             {([{ data: rooms }, { data: reservations }]) => {
               return (
                 <RoomList

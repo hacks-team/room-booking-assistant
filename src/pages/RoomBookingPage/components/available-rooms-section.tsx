@@ -18,7 +18,7 @@ export const BUSINESS_HOURS = {
   END_MINUTES: 20 * 60,
 };
 
-export function AvailableRoomsSection({ setReservationStateDate }: { setReservationStateDate: (date: Date) => void }) {
+export function AvailableRoomsSection() {
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
 
   const form = useFormContext<BookingFormData>();
@@ -62,7 +62,6 @@ export function AvailableRoomsSection({ setReservationStateDate }: { setReservat
           });
 
           setSelectedRoom(null);
-          setReservationStateDate(new Date(form.watch("date")));
           form.reset();
         }}
         onError={(error: Error) => {
