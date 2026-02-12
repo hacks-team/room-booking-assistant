@@ -5,14 +5,11 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { PropsWithChildren, Suspense } from "react";
 
 import { ReservationView } from "./components/reservation-view";
-import { Room } from "./types";
+import { roomQueries } from "./queries";
 
 export function RoomBookingPage() {
   // 회의실 목록
-  const { data: rooms } = useSuspenseQuery<Room[]>({
-    queryKey: ["get/rooms"],
-    queryFn: () => fetch("/api/rooms").then((res) => res.json()),
-  });
+  const { data: rooms } = useSuspenseQuery(roomQueries.list());
 
   return (
     <>
@@ -26,7 +23,7 @@ export function RoomBookingPage() {
         <TabsContent value="booking">
           <Suspense fallback={<div>로딩 중...</div>}>
             <div className="space-y-6">
-              <ReservationView rooms={rooms} />
+              <ReservationView title="예약 현황" rooms={rooms} />
               <BookingTab rooms={rooms} />
             </div>
           </Suspense>

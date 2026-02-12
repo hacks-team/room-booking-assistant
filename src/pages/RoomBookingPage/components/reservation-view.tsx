@@ -4,7 +4,8 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { useState } from "react";
 
-import { Reservation, Room } from "../types";
+import { reservationQueries } from "../queries";
+import { Room } from "../types";
 import { MeetingRoom } from "../ui/meeting-room-card";
 
 
@@ -17,10 +18,7 @@ export const ReservationView = ({ rooms, title }: Props) => {
   const [date, setDate] = useState<Date>(new Date())
   const formattedDate = dayjs(date).format("YYYY-MM-DD");
   // 예약 현황
-  const { data: reservations } = useSuspenseQuery<Reservation[]>({
-    queryKey: ["get/reservations", formattedDate],
-    queryFn: () => fetch(`/api/reservations?date=${formattedDate}`).then((res) => res.json()),
-  });
+  const { data: reservations } = useSuspenseQuery(reservationQueries.byDate(formattedDate));
 
   const onSelect = (date?: Date) => {
     setDate(date)

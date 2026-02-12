@@ -1,36 +1,24 @@
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import type { DeleteReservationResponse, Reservation, Room } from "@/src/pages/RoomBookingPage/types";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Calendar, Clock, Trash2, Users } from "lucide-react";
 
+import { reservationMutations, reservationQueries, roomQueries } from "../queries";
 import { MeetingRoom } from "../ui/meeting-room-card";
 
 export function MyReservationsTab() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: reservations } = useSuspenseQuery<Reservation[]>({
-    queryKey: ["get/my-reservations"],
-    queryFn: () => fetch("/api/my-reservations").then((res) => res.json()) as Promise<Reservation[]>,
-  });
-
-  const { data: rooms } = useSuspenseQuery<Room[]>({
-    queryKey: ["get/rooms"],
-    queryFn: () => fetch("/api/rooms").then((res) => res.json()) as Promise<Room[]>,
-  });
+  const { data: reservations } = useSuspenseQuery(reservationQueries.my());
+  const { data: rooms } = useSuspenseQuery(roomQueries.list());
 
   const cancelMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetch(`/api/reservations/${id}`, { method: "DELETE" });
-      const data: DeleteReservationResponse = await (res.json() as Promise<DeleteReservationResponse>);
-      if (!data.ok) throw new Error(data.message);
-      return data;
-    },
+    ...reservationMutations.cancel(),
     onSuccess: async () => {
       toast({ title: "예약이 취소되었습니다" });
-      await queryClient.invalidateQueries({ queryKey: ["get/my-reservations"] });
-      await queryClient.invalidateQueries({ queryKey: ["get/reservations"] });
+      await queryClient.invalidateQueries({ queryKey: reservationQueries.my().queryKey });
+      await queryClient.invalidateQueries({ queryKey: ["reservations"] });
     },
     onError: (error: Error) => {
       toast({ title: error.message, variant: "destructive" });

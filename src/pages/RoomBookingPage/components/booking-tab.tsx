@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import type { CreateReservationPayload, CreateReservationResponse, Equipment, Reservation, Room } from "@/src/pages/RoomBookingPage/types";
+import type { Equipment, Room } from "@/src/pages/RoomBookingPage/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Building2, Users } from "lucide-react";
@@ -11,6 +11,7 @@ import { useSearchParams } from "react-router-dom";
 import { z } from "zod";
 
 import { BookingForm } from "./form";
+import { reservationMutations, reservationQueries } from "../queries";
 import { MeetingRoom } from "../ui/meeting-room-card";
 import { generateFloorOptions, generateTimeOptions } from "../utils";
 import { formatDate } from "./form/date-field";
@@ -69,13 +70,7 @@ export function BookingTab({ rooms }: Props) {
   }, [date, startTime, endTime, attendees, equipmentsKey, floor, setSearchParams]);
 
 
-
-
-  // 예약 현황
-  const { data: reservations } = useSuspenseQuery<Reservation[]>({
-    queryKey: ["get/reservations", date],
-    queryFn: () => fetch(`/api/reservations?date=${date}`).then((res) => res.json()),
-  });
+  const { data: reservations } = useSuspenseQuery(reservationQueries.byDate(date));
 
 
   // 조건 1: 수용 인원
@@ -97,29 +92,19 @@ export function BookingTab({ rooms }: Props) {
   };
 
 
-  // 회의실 선택 상태
-  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+
 
 
   // 예약 생성
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const mutation = useMutation({
-    mutationFn: async (payload: CreateReservationPayload) => {
-      const res = await fetch("/api/reservations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data: CreateReservationResponse = await (res.json() as Promise<CreateReservationResponse>);
-      if (!data.ok) {
-        throw new Error(data.message);
-      }
-      return data;
-    },
+    ...reservationMutations.create(),
     onSuccess: async () => {
       toast({ title: "예약이 완료되었습니다" });
-      await queryClient.invalidateQueries({ queryKey: ["get/reservations"] });
+      await queryClient.invalidateQueries({ queryKey: reservationQueries.byDate(date).queryKey });
       setSelectedRoomId(null);
     },
     onError: (error: Error) => {
