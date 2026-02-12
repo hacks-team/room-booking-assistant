@@ -7,12 +7,20 @@ import type { ComponentProps, ReactNode } from "react";
 
 function MeetingRoomList<T>({
   items,
+  filter,
+  fallback,
   renderItem,
 }: {
   items: T[];
+  filter?: Array<(item: T) => boolean>;
+  fallback?: ReactNode;
   renderItem: (item: T) => ReactNode;
 }) {
-  return <>{items.map(renderItem)}</>;
+  const filtered = filter
+    ? items.filter((item) => filter.every((f) => f(item)))
+    : items;
+  if (filtered.length === 0 && fallback) return <>{fallback}</>;
+  return <>{filtered.map(renderItem)}</>;
 }
 
 interface MeetingRoomCardRootProps extends ComponentProps<"div"> {
@@ -104,7 +112,12 @@ const MeetingRoomCard = Object.assign(MeetingRoomCardRoot, {
 });
 
 interface MeetingRoomComponent {
-  <T>(props: { items: T[]; renderItem: (item: T) => ReactNode }): ReactNode;
+  <T>(props: {
+    items: T[];
+    filter?: Array<(item: T) => boolean>;
+    fallback?: ReactNode;
+    renderItem: (item: T) => ReactNode;
+  }): ReactNode;
   Card: typeof MeetingRoomCard;
 }
 

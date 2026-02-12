@@ -10,9 +10,10 @@ import { MeetingRoom } from "../ui/meeting-room-card";
 
 type Props = {
   rooms: Room[]
+  title: string
 }
 
-export const ReservationView = ({ rooms }: Props) => {
+export const ReservationView = ({ rooms, title }: Props) => {
   const [date, setDate] = useState<Date>(new Date())
   const formattedDate = dayjs(date).format("YYYY-MM-DD");
   // 예약 현황
@@ -24,26 +25,28 @@ export const ReservationView = ({ rooms }: Props) => {
   const onSelect = (date?: Date) => {
     setDate(date)
   }
+  const reservedRoomIds = new Set(reservations.map((r) => r.roomId));
 
   return <Card>
     <CardHeader>
-      <CardTitle>예약 현황</CardTitle>
+      <CardTitle>{title}</CardTitle>
     </CardHeader>
     <CardContent>
       <DateField label="날짜 선택" value={date} onSelect={onSelect} />
 
       <MeetingRoom
-        items={[...new Set(reservations.map((r) => r.roomId))]}
-        renderItem={(roomId) => {
-          const room = rooms.find((r) => r.id === roomId);
-          const roomReservations = reservations.filter((r) => r.roomId === roomId);
-          const startTime = roomReservations[0].start;
-          const endTime = roomReservations[0].end;
+        items={rooms}
+        filter={[(room) => reservedRoomIds.has(room.id)]}
+        renderItem={(room) => {
+          const roomReservations = reservations.filter((r) => r.roomId === room.id);
           return (
-            <MeetingRoom.Card key={roomId}>
-              <MeetingRoom.Card.Name>{room?.name ?? roomId}</MeetingRoom.Card.Name>
+            <MeetingRoom.Card key={room.id}>
+              <MeetingRoom.Card.Name>{room.name}</MeetingRoom.Card.Name>
               <MeetingRoom.Card.Row>
-                <MeetingRoom.Card.Badges items={[`${startTime} - ${endTime}`]} variant="outline" />
+                <MeetingRoom.Card.Badges
+                  items={roomReservations.map((r) => `${r.start} - ${r.end}`)}
+                  variant="outline"
+                />
               </MeetingRoom.Card.Row>
             </MeetingRoom.Card>
           );
