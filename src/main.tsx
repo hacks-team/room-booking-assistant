@@ -1,21 +1,27 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+
 import "../styles/globals.css";
 import { Routes } from "./Routes";
+
 import { Toaster } from "@/components/ui/toaster";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 async function bootstrap() {
   if (import.meta.env.DEV) {
     const { startMocks } = await import("./mocks");
     await startMocks();
   }
+  const queryClient = new QueryClient();
 
   ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <React.StrictMode>
-      <Routes />
-      <Toaster />
+      <QueryClientProvider client={queryClient}>
+        <Routes />
+        <Toaster />
+      </QueryClientProvider>
     </React.StrictMode>,
   );
 }
 
-bootstrap();
+void bootstrap();
