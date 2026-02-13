@@ -7,9 +7,9 @@ import { RoomList } from "./room-list";
 import { Equipment, Reservation, Room } from "../types/types";
 import { ReservationSubmitButton } from "./reservation-submit-button";
 import { useQueryClient } from "@tanstack/react-query";
-import { BookingFormData } from "./booking-tab";
 import { useFormContext } from "react-hook-form";
 import { toast } from "@/hooks/use-toast";
+import { BookingFormData } from "../hooks/useBookingForm";
 
 export const BUSINESS_HOURS = {
   START: "09:00",

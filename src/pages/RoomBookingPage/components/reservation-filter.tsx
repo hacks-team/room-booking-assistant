@@ -2,7 +2,6 @@ import { DateField } from "@/components/date-field";
 import { Controller, UseFormReturn } from "react-hook-form";
 import { formatTOYYYYMMDD } from "../lib/lib";
 import { InputField } from "@/components/input-field";
-import { BookingFormData } from "./booking-tab";
 import { SelectField } from "@/components/select-field";
 import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -10,12 +9,9 @@ import { Tv, Presentation, Video, Volume2 } from "lucide-react";
 import { useFormContext } from "react-hook-form";
 import { useQueryClient } from "@tanstack/react-query";
 import { Equipment, Room } from "../types/types";
+import { BookingFormData } from "../hooks/useBookingForm";
 
-export function ReservationFilter({
-  setQueryStates,
-}: {
-  setQueryStates: (queryStates: Record<string, string | number | string[]>) => void;
-}) {
+export function ReservationFilter() {
   const form = useFormContext<BookingFormData>();
 
   const queryClient = useQueryClient();
@@ -33,7 +29,7 @@ export function ReservationFilter({
             value={new Date(field.value)}
             onSelect={(date) => {
               field.onChange(formatTOYYYYMMDD(date ?? new Date()));
-              setQueryStates({ date: formatTOYYYYMMDD(date ?? new Date()) });
+              ({ date: formatTOYYYYMMDD(date ?? new Date()) });
             }}
           />
         )}
@@ -51,7 +47,7 @@ export function ReservationFilter({
               value={field.value}
               onChange={(e) => {
                 field.onChange(Number(e.target.value));
-                setQueryStates({ attendees: Number(e.target.value) });
+                ({ attendees: Number(e.target.value) });
               }}
             />
             {form.formState.errors.attendees && (
@@ -73,7 +69,7 @@ export function ReservationFilter({
               value={field.value}
               onValueChange={(value) => {
                 field.onChange(value);
-                setQueryStates({ startTime: value });
+                ({ startTime: value });
               }}
             />
             {form.formState.errors.startTime && (
@@ -95,7 +91,7 @@ export function ReservationFilter({
               value={field.value}
               onValueChange={(value) => {
                 field.onChange(value);
-                setQueryStates({ endTime: value });
+                ({ endTime: value });
               }}
             />
             {form.formState.errors.endTime && (
@@ -115,7 +111,7 @@ export function ReservationFilter({
             value={field.value}
             onValueChange={(value) => {
               field.onChange(value);
-              setQueryStates({ floor: value });
+              ({ floor: value });
             }}
             options={generateFloorOptions(rooms ?? [])}
           />
@@ -136,7 +132,7 @@ export function ReservationFilter({
               value={field.value}
               onValueChange={(value) => {
                 field.onChange(value as Equipment[]);
-                setQueryStates({ equipments: value as Equipment[] });
+                ({ equipments: value as Equipment[] });
               }}
             >
               <ToggleGroupItem value="tv">
