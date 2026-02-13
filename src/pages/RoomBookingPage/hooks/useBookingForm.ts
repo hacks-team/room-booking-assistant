@@ -4,14 +4,14 @@ import { parseAsArrayOf, parseAsInteger, parseAsString, useQueryStates } from "n
 import z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { timeToMinutes, formatTOYYYYMMDD } from "../lib/lib";
+import { formatTOYYYYMMDD } from "../lib/lib";
 import { validateTimeRange } from "../lib/validations";
 
 const bookingSchema = z
   .object({
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "올바른 날짜 형식이 아닙니다"),
-    startTime: z.string(),
-    endTime: z.string(),
+    start: z.string(),
+    end: z.string(),
     attendees: z.coerce
       .number({
         invalid_type_error: "숫자를 입력해주세요",
@@ -22,7 +22,7 @@ const bookingSchema = z
   })
   .refine(
     (data) => {
-      const result = validateTimeRange(data.startTime, data.endTime);
+      const result = validateTimeRange(data.start, data.end);
       return result.valid;
     },
     {
@@ -34,10 +34,10 @@ const bookingSchema = z
 export type BookingFormData = z.infer<typeof bookingSchema>;
 
 export function useBookingForm() {
-  const [{ date, startTime, endTime, attendees, equipments, floor }, setQueryStates] = useQueryStates({
+  const [{ date, start, end, attendees, equipments, floor }, setQueryStates] = useQueryStates({
     date: parseAsString,
-    startTime: parseAsString,
-    endTime: parseAsString,
+    start: parseAsString,
+    end: parseAsString,
     attendees: parseAsInteger,
     equipments: parseAsArrayOf(parseAsString).withDefault([] as Equipment[]),
     floor: parseAsString.withDefault("all"),
@@ -48,8 +48,8 @@ export function useBookingForm() {
     mode: "onChange",
     defaultValues: {
       date: date ?? formatTOYYYYMMDD(new Date()),
-      startTime: startTime ?? "",
-      endTime: endTime ?? "",
+      start: start ?? "",
+      end: end ?? "",
       attendees: attendees ?? 1,
       equipments: (equipments ?? []) as Equipment[],
       floor: floor ?? "all",
@@ -60,8 +60,8 @@ export function useBookingForm() {
     const subscription = bookingForm.watch((values) => {
       const queryParams: Partial<{
         date: string | null;
-        startTime: string | null;
-        endTime: string | null;
+        start: string | null;
+        end: string | null;
         attendees: number | null;
         equipments: string[] | null;
         floor: string | null;
@@ -71,12 +71,12 @@ export function useBookingForm() {
         queryParams.date = values.date;
       }
 
-      if (values.startTime) {
-        queryParams.startTime = values.startTime;
+      if (values.start) {
+        queryParams.start = values.start;
       }
 
-      if (values.endTime) {
-        queryParams.endTime = values.endTime;
+      if (values.end) {
+        queryParams.end = values.end;
       }
 
       if (values.attendees && values.attendees !== 1) {

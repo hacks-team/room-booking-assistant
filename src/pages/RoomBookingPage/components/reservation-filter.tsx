@@ -1,5 +1,5 @@
 import { DateField } from "@/components/date-field";
-import { Controller, UseFormReturn } from "react-hook-form";
+import { Controller } from "react-hook-form";
 import { formatTOYYYYMMDD } from "../lib/lib";
 import { InputField } from "@/components/input-field";
 import { SelectField } from "@/components/select-field";
@@ -29,7 +29,6 @@ export function ReservationFilter() {
             value={new Date(field.value)}
             onSelect={(date) => {
               field.onChange(formatTOYYYYMMDD(date ?? new Date()));
-              ({ date: formatTOYYYYMMDD(date ?? new Date()) });
             }}
           />
         )}
@@ -47,7 +46,6 @@ export function ReservationFilter() {
               value={field.value}
               onChange={(e) => {
                 field.onChange(Number(e.target.value));
-                ({ attendees: Number(e.target.value) });
               }}
             />
             {form.formState.errors.attendees && (
@@ -58,7 +56,7 @@ export function ReservationFilter() {
       />
 
       <Controller
-        name="startTime"
+        name="start"
         control={form.control}
         render={({ field }) => (
           <div>
@@ -69,18 +67,17 @@ export function ReservationFilter() {
               value={field.value}
               onValueChange={(value) => {
                 field.onChange(value);
-                ({ startTime: value });
               }}
             />
-            {form.formState.errors.startTime && (
-              <p className="text-destructive text-sm mt-1">{form.formState.errors.startTime.message}</p>
+            {form.formState.errors.start && (
+              <p className="text-destructive text-sm mt-1">{form.formState.errors.start.message}</p>
             )}
           </div>
         )}
       />
 
       <Controller
-        name="endTime"
+        name="end"
         control={form.control}
         render={({ field }) => (
           <div>
@@ -91,11 +88,10 @@ export function ReservationFilter() {
               value={field.value}
               onValueChange={(value) => {
                 field.onChange(value);
-                ({ endTime: value });
               }}
             />
-            {form.formState.errors.endTime && (
-              <p className="text-destructive text-sm mt-1">{form.formState.errors.endTime.message}</p>
+            {form.formState.errors.end && (
+              <p className="text-destructive text-sm mt-1">{form.formState.errors.end.message}</p>
             )}
           </div>
         )}
@@ -111,7 +107,6 @@ export function ReservationFilter() {
             value={field.value}
             onValueChange={(value) => {
               field.onChange(value);
-              ({ floor: value });
             }}
             options={generateFloorOptions(rooms ?? [])}
           />
@@ -132,7 +127,6 @@ export function ReservationFilter() {
               value={field.value}
               onValueChange={(value) => {
                 field.onChange(value as Equipment[]);
-                ({ equipments: value as Equipment[] });
               }}
             >
               <ToggleGroupItem value="tv">

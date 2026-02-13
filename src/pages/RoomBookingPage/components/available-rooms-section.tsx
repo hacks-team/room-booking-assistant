@@ -1,25 +1,32 @@
-import { Suspense, useState } from "react";
+import { Suspense, useCallback, useState } from "react";
 import { useMeetingRooms, useReservations } from "../queries/queries";
-import { timeToMinutes } from "../lib/lib";
 import { SuspenseQueries } from "@suspensive/react-query";
 import { RoomSelect } from "./room-select";
 import { RoomList } from "./room-list";
-import { Equipment, Reservation, Room } from "../types/types";
+import { Room } from "../types/types";
 import { ReservationSubmitButton } from "./reservation-submit-button";
 import { useQueryClient } from "@tanstack/react-query";
 import { useFormContext } from "react-hook-form";
 import { toast } from "@/hooks/use-toast";
 import { BookingFormData } from "../hooks/useBookingForm";
-import { validateBusinessHours, validateMinDuration, validateTimeRange } from "../lib/validations";
+import { validateReservation } from "../lib/validations";
+import { filterAvailableRooms } from "../lib/filters";
 
 export function AvailableRoomsSection() {
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
 
   const form = useFormContext<BookingFormData>();
   const formValues = form.watch();
-  const { date, startTime, endTime, attendees, equipments } = formValues;
+  const { date, start, end, attendees, equipments } = formValues;
 
   const queryClient = useQueryClient();
+
+  const handleReservationSuccess = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["reservations", date] });
+    queryClient.invalidateQueries({ queryKey: ["meeting-rooms"] });
+    setSelectedRoom(null);
+    form.reset();
+  }, [queryClient, date, form]);
 
   return (
     <>
@@ -48,18 +55,7 @@ export function AvailableRoomsSection() {
       </Suspense>
 
       <ReservationSubmitButton
-        onSuccess={() => {
-          queryClient.invalidateQueries({
-            queryKey: ["reservations", date],
-          });
-
-          queryClient.invalidateQueries({
-            queryKey: ["meeting-rooms"],
-          });
-
-          setSelectedRoom(null);
-          form.reset();
-        }}
+        onSuccess={handleReservationSuccess}
         onError={(error: Error) => {
           toast({
             title: "예약 실패",
@@ -71,8 +67,8 @@ export function AvailableRoomsSection() {
         postContent={{
           roomId: selectedRoom?.id ?? "",
           date,
-          start: startTime,
-          end: endTime,
+          start,
+          end,
           attendees,
           equipments,
         }}
@@ -80,60 +76,3 @@ export function AvailableRoomsSection() {
     </>
   );
 }
-
-const validateReservation = (
-  formValues: BookingFormData,
-  selectedRoom: Room | null,
-): { valid: boolean; message?: string } => {
-  if (!selectedRoom) {
-    return {
-      valid: false,
-      message: "예약할 회의실을 선택해주세요",
-    };
-  }
-
-  const timeRangeResult = validateTimeRange(formValues.startTime, formValues.endTime);
-  if (!timeRangeResult.valid) {
-    return timeRangeResult;
-  }
-
-  const startHoursResult = validateBusinessHours(formValues.startTime);
-  if (!startHoursResult.valid) {
-    return startHoursResult;
-  }
-
-  const endHoursResult = validateBusinessHours(formValues.endTime);
-  if (!endHoursResult.valid) {
-    return endHoursResult;
-  }
-
-  const minDurationResult = validateMinDuration(formValues.startTime, formValues.endTime);
-  if (!minDurationResult.valid) {
-    return minDurationResult;
-  }
-  return { valid: true };
-};
-
-const filterAvailableRooms = (rooms: Room[], reservations: Reservation[], formValues: BookingFormData): Room[] => {
-  return rooms.filter((room) => {
-    const capacityMatch = room.capacity >= formValues.attendees;
-    const equipmentMatch = formValues.equipments?.every((equipment) =>
-      room.equipments.includes(equipment as Equipment),
-    );
-    const selectedFloor = formValues.floor;
-    const floorMatch = selectedFloor === "all" || room.floor === Number(formValues.floor);
-
-    const reservationMatch = reservations.find((reservation) => reservation.roomId === room.id);
-
-    if (reservationMatch) {
-      const reservationTimeMatch =
-        timeToMinutes(reservationMatch?.start ?? "") >= timeToMinutes(formValues.endTime) ||
-        timeToMinutes(reservationMatch?.end ?? "") <= timeToMinutes(formValues.startTime);
-      if (!reservationTimeMatch) {
-        return false;
-      }
-    }
-
-    return floorMatch && capacityMatch && equipmentMatch;
-  });
-};

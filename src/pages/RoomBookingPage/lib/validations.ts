@@ -1,3 +1,5 @@
+import { BookingFormData } from "../hooks/useBookingForm";
+import { Room } from "../types/types";
 import { timeToMinutes } from "./lib";
 
 export const BUSINESS_HOURS = {
@@ -69,5 +71,38 @@ export function validateMinDuration(
     };
   }
 
+  return { valid: true };
+}
+
+export function validateReservation(
+  formValues: BookingFormData,
+  selectedRoom: Room | null,
+): { valid: boolean; message?: string } {
+  if (!selectedRoom) {
+    return {
+      valid: false,
+      message: "예약할 회의실을 선택해주세요",
+    };
+  }
+
+  const timeRangeResult = validateTimeRange(formValues.start, formValues.end);
+  if (!timeRangeResult.valid) {
+    return timeRangeResult;
+  }
+
+  const startHoursResult = validateBusinessHours(formValues.start);
+  if (!startHoursResult.valid) {
+    return startHoursResult;
+  }
+
+  const endHoursResult = validateBusinessHours(formValues.end);
+  if (!endHoursResult.valid) {
+    return endHoursResult;
+  }
+
+  const minDurationResult = validateMinDuration(formValues.start, formValues.end);
+  if (!minDurationResult.valid) {
+    return minDurationResult;
+  }
   return { valid: true };
 }
