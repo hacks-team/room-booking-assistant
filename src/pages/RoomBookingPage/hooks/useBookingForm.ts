@@ -84,13 +84,9 @@ export function useBookingForm() {
       }
 
       const filteredEquipments = values.equipments?.filter((v): v is NonNullable<typeof v> => v != null);
-      if (filteredEquipments && filteredEquipments.length > 0) {
-        queryParams.equipments = filteredEquipments;
-      }
+      queryParams.equipments = filteredEquipments && filteredEquipments.length > 0 ? filteredEquipments : null;
 
-      if (values.floor && values.floor !== "all") {
-        queryParams.floor = values.floor;
-      }
+      queryParams.floor = values.floor && values.floor !== "all" ? values.floor : null;
 
       setQueryStates(queryParams);
     });

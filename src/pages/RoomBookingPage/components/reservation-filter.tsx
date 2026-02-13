@@ -7,16 +7,14 @@ import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tv, Presentation, Video, Volume2 } from "lucide-react";
 import { useFormContext } from "react-hook-form";
-import { useQueryClient } from "@tanstack/react-query";
 import { Equipment, Room } from "../types/types";
 import { BookingFormData } from "../hooks/useBookingForm";
+import { Suspense } from "react";
+import { SuspenseQueries } from "@suspensive/react-query";
+import { useMeetingRooms } from "../queries/queries";
 
 export function ReservationFilter() {
   const form = useFormContext<BookingFormData>();
-
-  const queryClient = useQueryClient();
-
-  const rooms = queryClient.getQueryData<Room[]>(["meeting-rooms"]);
 
   return (
     <>
@@ -97,21 +95,27 @@ export function ReservationFilter() {
         )}
       />
 
-      <Controller
-        name="floor"
-        control={form.control}
-        render={({ field }) => (
-          <SelectField
-            label="선호 층"
-            placeholder="선택"
-            value={field.value}
-            onValueChange={(value) => {
-              field.onChange(value);
-            }}
-            options={generateFloorOptions(rooms ?? [])}
-          />
-        )}
-      />
+      <Suspense fallback={<div>Loading...</div>}>
+        <SuspenseQueries queries={[useMeetingRooms()]}>
+          {([{ data: rooms }]) => (
+            <Controller
+              name="floor"
+              control={form.control}
+              render={({ field }) => (
+                <SelectField
+                  label="선호 층"
+                  placeholder="선택"
+                  value={field.value}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                  }}
+                  options={generateFloorOptions(rooms)}
+                />
+              )}
+            />
+          )}
+        </SuspenseQueries>
+      </Suspense>
 
       <Controller
         name="equipments"
@@ -180,6 +184,7 @@ const generateTimeOptions = ({
 };
 
 const generateFloorOptions = (rooms: Room[]): Array<{ label: string; value: string }> => {
+  console.log("rooms", rooms);
   const floors = Array.from(new Set(rooms.map((room) => room.floor))).sort((a, b) => a - b);
 
   return [
