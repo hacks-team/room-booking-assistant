@@ -5,10 +5,11 @@ import z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { timeToMinutes, formatTOYYYYMMDD } from "../lib/lib";
+import { validateTimeRange } from "../lib/validations";
 
 const bookingSchema = z
   .object({
-    date: z.string().datetime(),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "올바른 날짜 형식이 아닙니다"),
     startTime: z.string(),
     endTime: z.string(),
     attendees: z.coerce
@@ -21,9 +22,8 @@ const bookingSchema = z
   })
   .refine(
     (data) => {
-      const start = timeToMinutes(data.startTime);
-      const end = timeToMinutes(data.endTime);
-      return end > start;
+      const result = validateTimeRange(data.startTime, data.endTime);
+      return result.valid;
     },
     {
       message: "종료 시간은 시작 시간보다 늦어야 합니다",

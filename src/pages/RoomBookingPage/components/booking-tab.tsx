@@ -1,5 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { parseAsString, useQueryStates } from "nuqs";
 import { ReservationStateList } from "./resevation-state-list";
 import { AvailableRoomsSection } from "./available-rooms-section";
 import { FormProvider } from "react-hook-form";

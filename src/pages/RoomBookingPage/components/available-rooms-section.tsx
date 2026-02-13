@@ -1,6 +1,6 @@
 import { Suspense, useState } from "react";
 import { useMeetingRooms, useReservations } from "../queries/queries";
-import { formatTOYYYYMMDD, timeToMinutes } from "../lib/lib";
+import { timeToMinutes } from "../lib/lib";
 import { SuspenseQueries } from "@suspensive/react-query";
 import { RoomSelect } from "./room-select";
 import { RoomList } from "./room-list";
@@ -10,27 +10,23 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useFormContext } from "react-hook-form";
 import { toast } from "@/hooks/use-toast";
 import { BookingFormData } from "../hooks/useBookingForm";
-
-export const BUSINESS_HOURS = {
-  START: "09:00",
-  END: "20:00",
-  START_MINUTES: 9 * 60,
-  END_MINUTES: 20 * 60,
-};
+import { validateBusinessHours, validateMinDuration, validateTimeRange } from "../lib/validations";
 
 export function AvailableRoomsSection() {
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
 
   const form = useFormContext<BookingFormData>();
+  const formValues = form.watch();
+  const { date, startTime, endTime, attendees, equipments } = formValues;
 
   const queryClient = useQueryClient();
 
   return (
     <>
       <Suspense fallback={<div>Loading...</div>}>
-        <SuspenseQueries queries={[useMeetingRooms(), useReservations(form.watch("date"))]}>
+        <SuspenseQueries queries={[useMeetingRooms(), useReservations(date)]}>
           {([{ data: rooms }, { data: reservations }]) => {
-            const availableRooms = filterAvailableRooms(rooms, reservations, form.watch());
+            const availableRooms = filterAvailableRooms(rooms, reservations, formValues);
             return (
               <RoomList
                 rooms={availableRooms}
@@ -54,7 +50,7 @@ export function AvailableRoomsSection() {
       <ReservationSubmitButton
         onSuccess={() => {
           queryClient.invalidateQueries({
-            queryKey: ["reservations", form.watch("date")],
+            queryKey: ["reservations", date],
           });
 
           queryClient.invalidateQueries({
@@ -71,14 +67,14 @@ export function AvailableRoomsSection() {
             duration: 5000,
           });
         }}
-        validateReservation={validateReservation(form.watch(), selectedRoom)}
+        validateReservation={validateReservation(formValues, selectedRoom)}
         postContent={{
           roomId: selectedRoom?.id ?? "",
-          date: form.watch("date"),
-          start: form.watch("startTime"),
-          end: form.watch("endTime"),
-          attendees: form.watch("attendees"),
-          equipments: form.watch("equipments"),
+          date,
+          start: startTime,
+          end: endTime,
+          attendees,
+          equipments,
         }}
       />
     </>
@@ -96,45 +92,25 @@ const validateReservation = (
     };
   }
 
-  if (!formValues.startTime || !formValues.endTime) {
-    return {
-      valid: false,
-      message: "시작 시간과 종료 시간을 모두 선택해주세요",
-    };
+  const timeRangeResult = validateTimeRange(formValues.startTime, formValues.endTime);
+  if (!timeRangeResult.valid) {
+    return timeRangeResult;
   }
 
-  const start = timeToMinutes(formValues.startTime);
-  const end = timeToMinutes(formValues.endTime);
-
-  if (start < BUSINESS_HOURS.START_MINUTES || start > BUSINESS_HOURS.END_MINUTES) {
-    return {
-      valid: false,
-      message: `시작 시간은 ${BUSINESS_HOURS.START} ~ ${BUSINESS_HOURS.END} 사이여야 합니다`,
-    };
+  const startHoursResult = validateBusinessHours(formValues.startTime);
+  if (!startHoursResult.valid) {
+    return startHoursResult;
   }
 
-  if (end < BUSINESS_HOURS.START_MINUTES || end > BUSINESS_HOURS.END_MINUTES) {
-    return {
-      valid: false,
-      message: `종료 시간은 ${BUSINESS_HOURS.START} ~ ${BUSINESS_HOURS.END} 사이여야 합니다`,
-    };
+  const endHoursResult = validateBusinessHours(formValues.endTime);
+  if (!endHoursResult.valid) {
+    return endHoursResult;
   }
 
-  if (end <= start) {
-    return {
-      valid: false,
-      message: "종료 시간은 시작 시간보다 늦어야 합니다",
-    };
+  const minDurationResult = validateMinDuration(formValues.startTime, formValues.endTime);
+  if (!minDurationResult.valid) {
+    return minDurationResult;
   }
-
-  const duration = end - start;
-  if (duration < 30) {
-    return {
-      valid: false,
-      message: "최소 30분 이상 예약해야 합니다",
-    };
-  }
-
   return { valid: true };
 };
 
