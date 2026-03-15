@@ -184,7 +184,6 @@ const generateTimeOptions = ({
 };
 
 const generateFloorOptions = (rooms: Room[]): Array<{ label: string; value: string }> => {
-  console.log("rooms", rooms);
   const floors = Array.from(new Set(rooms.map((room) => room.floor))).sort((a, b) => a - b);
 
   return [

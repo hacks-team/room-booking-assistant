@@ -1,7 +1,6 @@
 import { Mutation, SuspenseQueries } from "@suspensive/react-query";
 import { Suspense } from "react";
 import { useMyReservations } from "../queries/queries";
-import { ReservationList } from "./reservation-list";
 import { Room } from "../types/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { ReservationCard } from "./reservation-card";
@@ -30,65 +29,62 @@ export function MyReservationsTab() {
 
             return (
               <>
-                <ReservationList
-                  reservations={reservations}
-                  renderItem={(reservation) => {
-                    const room = rooms?.find((room) => room.id === reservation.roomId);
+                {reservations.map((reservation) => {
+                  const room = rooms?.find((room) => room.id === reservation.roomId);
 
-                    return (
-                      <ReservationCard key={reservation.id}>
-                        <ReservationCard.Header>
-                          <ReservationCard.Title>{room?.name ?? ""}</ReservationCard.Title>
-                          <ReservationCard.Info
-                            date={reservation.date}
-                            startTime={reservation.start}
-                            endTime={reservation.end}
-                            capacity={reservation.attendees}
+                  return (
+                    <ReservationCard key={reservation.id}>
+                      <ReservationCard.Header>
+                        <ReservationCard.Title>{room?.name ?? ""}</ReservationCard.Title>
+                        <ReservationCard.Info
+                          date={reservation.date}
+                          startTime={reservation.start}
+                          endTime={reservation.end}
+                          capacity={reservation.attendees}
+                        />
+                        <ReservationCard.Equipments equipments={room?.equipments ?? []} />
+                      </ReservationCard.Header>
+
+                      <Mutation
+                        key={reservation.id}
+                        mutationFn={() => deleteReservation(reservation.id)}
+                        onSuccess={() => {
+                          queryClient.invalidateQueries({
+                            queryKey: ["my-reservations"],
+                          });
+
+                          queryClient.invalidateQueries({
+                            queryKey: ["reservations", reservation.date],
+                          });
+
+                          queryClient.invalidateQueries({
+                            queryKey: ["meeting-rooms"],
+                          });
+
+                          toast({
+                            title: "예약 취소 완료",
+                            description: "예약이 성공적으로 취소되었습니다",
+                            duration: 1000,
+                          });
+                        }}
+                        onError={(error: Error) => {
+                          toast({
+                            title: "예약 취소 실패",
+                            description: error.message || "예약 취소 중 오류가 발생했습니다",
+                            duration: 1000,
+                          });
+                        }}
+                      >
+                        {(mutation) => (
+                          <ReservationCard.CancelButton
+                            onCancel={() => mutation.mutate()}
+                            disabled={mutation.isPending}
                           />
-                          <ReservationCard.Equipments equipments={room?.equipments ?? []} />
-                        </ReservationCard.Header>
-
-                        <Mutation
-                          key={reservation.id}
-                          mutationFn={() => deleteReservation(reservation.id)}
-                          onSuccess={() => {
-                            queryClient.invalidateQueries({
-                              queryKey: ["my-reservations"],
-                            });
-
-                            queryClient.invalidateQueries({
-                              queryKey: ["reservations", reservation.date],
-                            });
-
-                            queryClient.invalidateQueries({
-                              queryKey: ["meeting-rooms"],
-                            });
-
-                            toast({
-                              title: "예약 취소 완료",
-                              description: "예약이 성공적으로 취소되었습니다",
-                              duration: 1000,
-                            });
-                          }}
-                          onError={(error: Error) => {
-                            toast({
-                              title: "예약 취소 실패",
-                              description: error.message || "예약 취소 중 오류가 발생했습니다",
-                              duration: 1000,
-                            });
-                          }}
-                        >
-                          {(mutation) => (
-                            <ReservationCard.CancelButton
-                              onCancel={() => mutation.mutate()}
-                              disabled={mutation.isPending}
-                            />
-                          )}
-                        </Mutation>
-                      </ReservationCard>
-                    );
-                  }}
-                />
+                        )}
+                      </Mutation>
+                    </ReservationCard>
+                  );
+                })}
               </>
             );
           }}

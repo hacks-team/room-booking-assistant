@@ -2,7 +2,6 @@ import { Suspense, useCallback, useState } from "react";
 import { useMeetingRooms, useReservations } from "../queries/queries";
 import { SuspenseQueries } from "@suspensive/react-query";
 import { RoomSelect } from "./room-select";
-import { RoomList } from "./room-list";
 import { Room } from "../types/types";
 import { ReservationSubmitButton } from "./reservation-submit-button";
 import { useQueryClient } from "@tanstack/react-query";
@@ -35,20 +34,17 @@ export function AvailableRoomsSection() {
           {([{ data: rooms }, { data: reservations }]) => {
             const availableRooms = filterAvailableRooms(rooms, reservations, formValues);
             return (
-              <RoomList
-                rooms={availableRooms}
-                renderItem={(room) => (
-                  <RoomSelect
-                    key={room.id}
-                    name={room.name}
-                    floor={room.floor}
-                    capacity={room.capacity}
-                    equipments={room.equipments}
-                    onSelect={() => setSelectedRoom(room as Room)}
-                    selected={selectedRoom?.id === room.id}
-                  />
-                )}
-              />
+              availableRooms.map((room) => (
+                <RoomSelect
+                  key={room.id}
+                  name={room.name}
+                  floor={room.floor}
+                  capacity={room.capacity}
+                  equipments={room.equipments}
+                  onSelect={() => setSelectedRoom(room as Room)}
+                  selected={selectedRoom?.id === room.id}
+                />
+              ))
             );
           }}
         </SuspenseQueries>
