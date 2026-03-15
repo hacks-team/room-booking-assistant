@@ -3,16 +3,12 @@ import { ErrorBoundary, Suspense } from "@suspensive/react";
 import { SuspenseQueries } from "@suspensive/react-query";
 import { useMeetingRooms, useReservations } from "../queries/queries";
 import { formatTOYYYYMMDD } from "../lib/lib";
-import { RoomList } from "./room-list";
 import { SubCard } from "@/components/ui/sub-card";
 import { RoomCard } from "./room-card";
-import { parseAsIsoDate, parseAsString, useQueryState } from "nuqs";
+import { useState } from "react";
 
 export function ReservationStateList() {
-  const [reservationStateDate, setReservationStateDate] = useQueryState(
-    "reservationStateDate",
-    parseAsString.withDefault(formatTOYYYYMMDD(new Date())),
-  );
+  const [reservationStateDate, setReservationStateDate] = useState(formatTOYYYYMMDD(new Date()));
 
   return (
     <>
@@ -26,17 +22,14 @@ export function ReservationStateList() {
           <SuspenseQueries queries={[useMeetingRooms(), useReservations(reservationStateDate)]}>
             {([{ data: rooms }, { data: reservations }]) => {
               return (
-                <RoomList
-                  rooms={rooms}
-                  renderItem={(room) => {
-                    const roomReservations = reservations.filter((reservation) => reservation.roomId === room.id);
-                    return (
-                      <SubCard key={room.id}>
-                        <RoomCard room={room} roomReservations={roomReservations} />
-                      </SubCard>
-                    );
-                  }}
-                />
+                rooms.map((room) => {
+                  const roomReservations = reservations.filter((reservation) => reservation.roomId === room.id);
+                  return (
+                    <SubCard key={room.id}>
+                      <RoomCard room={room} roomReservations={roomReservations} />
+                    </SubCard>
+                  );
+                })
               );
             }}
           </SuspenseQueries>
