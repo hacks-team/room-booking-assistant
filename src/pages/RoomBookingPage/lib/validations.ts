@@ -76,9 +76,9 @@ export function validateMinDuration(
 
 export function validateReservation(
   formValues: BookingFormData,
-  selectedRoom: Room | null,
+  selectedRoomId: string | null,
 ): { valid: boolean; message?: string } {
-  if (!selectedRoom) {
+  if (!selectedRoomId) {
     return {
       valid: false,
       message: "예약할 회의실을 선택해주세요",

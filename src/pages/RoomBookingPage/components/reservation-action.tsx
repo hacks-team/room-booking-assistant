@@ -7,10 +7,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { validateReservation } from "../lib/validations";
 
 export function ReservationAction({
-  selectedRoom,
+  selectedRoomId,
   formValues,
 }: {
-  selectedRoom: Room | null;
+  selectedRoomId: string | null;
   formValues: BookingFormData;
 }) {
   const queryClient = useQueryClient();
@@ -37,7 +37,7 @@ export function ReservationAction({
 
   return (
     <Button size="lg" disabled={mutation.isPending} onClick={() => {
-      const result = validateReservation(formValues, selectedRoom);
+      const result = validateReservation(formValues, selectedRoomId);
 
       if (!result.valid) {
         toast({
@@ -48,7 +48,7 @@ export function ReservationAction({
       }
 
       mutation.mutate({
-        roomId: selectedRoom!.id,
+        roomId: selectedRoomId!,
         date: formValues.date,
         start: formValues.start,
         end: formValues.end,
