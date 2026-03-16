@@ -3,7 +3,7 @@ import { ReservationStateList } from "./resevation-state-list";
 import { AvailableRoomsSection } from "./available-rooms-section";
 import { FormProvider } from "react-hook-form";
 import { useBookingForm } from "../hooks/useBookingForm";
-import { ReservationFilter } from "./reservation-filter";
+import { ReservationForm } from "./reservation-form";
 
 export function BookingTab() {
   const bookingForm = useBookingForm();
@@ -26,7 +26,7 @@ export function BookingTab() {
             <CardTitle>예약 조건</CardTitle>
           </CardHeader>
           <CardContent>
-            <ReservationFilter />
+            <ReservationForm />
           </CardContent>
         </Card>
 

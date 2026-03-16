@@ -13,7 +13,7 @@ import { Suspense } from "react";
 import { SuspenseQueries } from "@suspensive/react-query";
 import { useMeetingRooms } from "../queries/queries";
 
-export function ReservationFilter() {
+export function ReservationForm() {
   const form = useFormContext<BookingFormData>();
 
   return (
