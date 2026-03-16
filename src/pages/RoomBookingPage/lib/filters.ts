@@ -14,11 +14,19 @@ const isFloorMatch = (room: Room, formValues: BookingFormData) => {
   return formValues.floor === "all" || room.floor === Number(formValues.floor);
 };
 
-const isReservationTimeMatch = (reservation: Reservation, formValues: BookingFormData) => {
-  return (
-    timeToMinutes(reservation.start ?? "") >= timeToMinutes(formValues.end) ||
-    timeToMinutes(reservation.end ?? "") <= timeToMinutes(formValues.start)
-  );
+const hasNoTimeConflict = (reservation: Reservation, formValues: BookingFormData) => {
+  const reservationStart = timeToMinutes(reservation.start ?? "");
+  const reservationEnd = timeToMinutes(reservation.end ?? "");
+  const formStart = timeToMinutes(formValues.start);
+  const formEnd = timeToMinutes(formValues.end);
+
+  return reservationStart >= formEnd || reservationEnd <= formStart;
+};
+
+const hasNoConflictingReservations = (room: Room, reservations: Reservation[], formValues: BookingFormData) => {
+  const roomReservations = reservations.filter((reservation) => reservation.roomId === room.id);
+  
+  return roomReservations.every((reservation) => hasNoTimeConflict(reservation, formValues));
 };
 
 export const filterAvailableRooms = (
@@ -27,14 +35,9 @@ export const filterAvailableRooms = (
   formValues: BookingFormData,
 ): Room[] => {
   return rooms.filter((room) => {
-    const reservationMatch = reservations.find((reservation) => reservation.roomId === room.id);
-    if (reservationMatch) {
-      const reservationTimeMatch = isReservationTimeMatch(reservationMatch, formValues);
-      if (!reservationTimeMatch) {
-        return false;
-      }
-    }
+    const hasNoConflicts = hasNoConflictingReservations(room, reservations, formValues);
+    const matchesFilters = isFloorMatch(room, formValues) && isCapacityMatch(room, formValues) && isEquipmentMatch(room, formValues);
 
-    return isFloorMatch(room, formValues) && isCapacityMatch(room, formValues) && isEquipmentMatch(room, formValues);
+    return hasNoConflicts && matchesFilters;
   });
 };
