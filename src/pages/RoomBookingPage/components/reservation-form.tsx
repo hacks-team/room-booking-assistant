@@ -1,6 +1,5 @@
 import { DateField } from "@/components/date-field";
 import { Controller } from "react-hook-form";
-import { formatTOYYYYMMDD } from "../lib/lib";
 import { InputField } from "@/components/input-field";
 import { SelectField } from "@/components/select-field";
 import { Label } from "@/components/ui/label";
@@ -12,12 +11,18 @@ import { BookingFormData } from "../hooks/useBookingForm";
 import { Suspense } from "react";
 import { SuspenseQueries } from "@suspensive/react-query";
 import { useMeetingRooms } from "../queries/queries";
+import { format } from "date-fns";
 
 export function ReservationForm() {
   const form = useFormContext<BookingFormData>();
 
   return (
     <>
+      {/* // Controller를 안으로 숨기고 컴포넌트를 만들어서 인터페이스를 노출시키는 추상화도 좋을것 같다. */}
+      {/* controller에 쌈싸먹기 위해서 좀 복잡해 보인다. */}
+      {/* 화면에 훅폼없다. */}
+      {/* controller는 훅으로도 가능하다 -> 안쓰면 응집이 가능하다.  */}
+      {/* 추상화를 했을때 얻는 트레이드오프 전제를 해보고 이득이 있는지 */}
       <Controller
         name="date"
         control={form.control}
@@ -26,7 +31,7 @@ export function ReservationForm() {
             label="날짜"
             value={new Date(field.value)}
             onSelect={(date) => {
-              field.onChange(formatTOYYYYMMDD(date ?? new Date()));
+              field.onChange(format(date ?? new Date(), "yyyy-MM-dd"));
             }}
           />
         )}
@@ -157,6 +162,7 @@ export function ReservationForm() {
   );
 }
 
+// 순수함수다. 사이드 이펙트를 안준다.
 const generateTimeOptions = ({
   startHour,
   endHour,
@@ -194,3 +200,6 @@ const generateFloorOptions = (rooms: Room[]): Array<{ label: string; value: stri
     })),
   ];
 };
+
+
+// 추상화를 하고싶어. 복잡한게 뭘까? 에러메세지?

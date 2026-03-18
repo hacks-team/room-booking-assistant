@@ -4,7 +4,7 @@ import { parseAsArrayOf, parseAsInteger, parseAsString, useQueryStates } from "n
 import z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { formatTOYYYYMMDD } from "../lib/lib";
+import { format } from "date-fns";
 import { validateTimeRange } from "../lib/validations";
 
 const bookingSchema = z
@@ -47,7 +47,7 @@ export function useBookingForm() {
     resolver: zodResolver(bookingSchema),
     mode: "onChange",
     defaultValues: {
-      date: date ?? formatTOYYYYMMDD(new Date()),
+      date: date ?? format(new Date(), "yyyy-MM-dd"),
       start: start ?? "",
       end: end ?? "",
       attendees: attendees ?? 1,
