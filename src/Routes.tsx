@@ -12,8 +12,8 @@ const router = createBrowserRouter([
       {
         path: "/",
         element: <RoomBookingPage />,
+        // loader:  여기서 로딩 처리하는 방법도  생각해볼만하다. 
       },
-
       {
         path: "*",
         element: <Navigate to="/" replace />,

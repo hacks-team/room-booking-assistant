@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { postReservation } from "../apis/apis";
-import { Room } from "../types/types";
 import { BookingFormData } from "../hooks/useBookingForm";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { validateReservation } from "../lib/validations";

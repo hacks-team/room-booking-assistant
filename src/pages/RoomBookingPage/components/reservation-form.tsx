@@ -9,8 +9,8 @@ import { useFormContext } from "react-hook-form";
 import { Equipment, Room } from "../types/types";
 import { BookingFormData } from "../hooks/useBookingForm";
 import { Suspense } from "react";
-import { SuspenseQueries } from "@suspensive/react-query";
-import { useMeetingRooms } from "../queries/queries";
+import { SuspenseQuery } from "@suspensive/react-query";
+import { meetingRoomsQueryOptions } from "../queries/queries";
 import { format } from "date-fns";
 
 export function ReservationForm() {
@@ -101,8 +101,8 @@ export function ReservationForm() {
       />
 
       <Suspense fallback={<div>Loading...</div>}>
-        <SuspenseQueries queries={[useMeetingRooms()]}>
-          {([{ data: rooms }]) => (
+        <SuspenseQuery {...meetingRoomsQueryOptions()}>
+          {({ data: rooms }) => (
             <Controller
               name="floor"
               control={form.control}
@@ -119,7 +119,7 @@ export function ReservationForm() {
               )}
             />
           )}
-        </SuspenseQueries>
+        </SuspenseQuery>
       </Suspense>
 
       <Controller

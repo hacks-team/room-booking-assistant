@@ -1,7 +1,7 @@
 import { DateField } from "@/components/date-field";
 import { ErrorBoundary, Suspense } from "@suspensive/react";
 import { SuspenseQueries } from "@suspensive/react-query";
-import { useMeetingRooms, useReservations } from "../queries/queries";
+import { meetingRoomsQueryOptions, reservationsQueryOptions } from "../queries/queries";
 import { format } from "date-fns";
 import { SubCard } from "@/components/ui/sub-card";
 import { RoomCard } from "./room-card";
@@ -26,7 +26,7 @@ export function ReservationStateList() {
       //  */}
       <ErrorBoundary fallback={({ error }) => <>{error.message}</>}>
         <Suspense fallback={<div>Loading...</div>}>
-          <SuspenseQueries queries={[useMeetingRooms(), useReservations(reservationStateDate)]}>
+          <SuspenseQueries queries={[meetingRoomsQueryOptions(), reservationsQueryOptions(reservationStateDate)]}>
             {([{ data: rooms }, { data: reservations }]) => {
               return (
                 rooms.map((room) => {

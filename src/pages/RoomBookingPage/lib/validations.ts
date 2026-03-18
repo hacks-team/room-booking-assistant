@@ -1,5 +1,4 @@
 import { BookingFormData } from "../hooks/useBookingForm";
-import { Room } from "../types/types";
 import { timeToMinutes } from "./lib";
 
 export const BUSINESS_HOURS = {
@@ -106,3 +105,10 @@ export function validateReservation(
   }
   return { valid: true };
 }
+
+// 얘가 무슨 요구사항이었을까?
+// 1.. 
+// 2..
+// 3..
+// 얘가 어떤 형태에 맞지 않으면 터져야 해
+// zod 쓰면 어떨까?

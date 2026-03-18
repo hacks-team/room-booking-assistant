@@ -1,21 +1,21 @@
 import { queryOptions } from "@tanstack/react-query";
 import { getMeetingRooms, getMyReservations, getReservations } from "../apis/apis";
 
-export const useMeetingRooms = () => {
+export const meetingRoomsQueryOptions = () => {
   return queryOptions({
     queryKey: ["meeting-rooms"],
     queryFn: () => getMeetingRooms(),
   });
 };
 
-export const useReservations = (date: string) => {
+export const reservationsQueryOptions = (date: string) => {
   return queryOptions({
     queryKey: ["reservations", date],
     queryFn: () => getReservations(date),
   });
 };
 
-export const useMyReservations = () => {
+export const myReservationsQueryOptions = () => {
   return queryOptions({
     queryKey: ["my-reservations"],
     queryFn: () => getMyReservations(),

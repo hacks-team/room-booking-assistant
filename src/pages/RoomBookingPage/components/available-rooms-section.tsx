@@ -1,5 +1,5 @@
 import { Suspense, useState } from "react";
-import { useMeetingRooms, useReservations } from "../queries/queries";
+import { meetingRoomsQueryOptions, reservationsQueryOptions } from "../queries/queries";
 import { SuspenseQueries } from "@suspensive/react-query";
 import { RoomSelect } from "./room-select";
 import { ReservationAction } from "./reservation-action";
@@ -18,7 +18,7 @@ export function AvailableRoomsSection() {
     <>
       <ErrorBoundary fallback={({ error }) => <div>{error.message}</div>}>
         <Suspense fallback={<div>Loading...</div>}>
-          <SuspenseQueries queries={[useMeetingRooms(), useReservations(formValues.date)]}>
+          <SuspenseQueries queries={[meetingRoomsQueryOptions(), reservationsQueryOptions(formValues.date)]}>
             {([{ data: rooms }, { data: reservations }]) => {
               const availableRooms = filterAvailableRooms(rooms, reservations, formValues);
               const selectedRoomIdInAvailableRooms =
@@ -37,6 +37,7 @@ export function AvailableRoomsSection() {
                       selected={selectedRoomId === room.id}
                     />
                   ))}
+                  {/* 여기 안에서 벨리데이션 하고, 액션을 처리한다.  */}
                   <ReservationAction
                     selectedRoomId={selectedRoomIdInAvailableRooms}
                     formValues={formValues}
@@ -50,3 +51,5 @@ export function AvailableRoomsSection() {
     </>
   );
 }
+
+// 토스트도 react에 의존적이다 ? 어렵다.

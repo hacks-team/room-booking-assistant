@@ -1,6 +1,6 @@
-import { Mutation, SuspenseQueries } from "@suspensive/react-query";
+import { Mutation, SuspenseQueries, SuspenseQuery } from "@suspensive/react-query";
 import { Suspense } from "react";
-import { useMyReservations } from "../queries/queries";
+import { myReservationsQueryOptions } from "../queries/queries";
 import { Room } from "../types/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { ReservationCard } from "./reservation-card";
@@ -10,13 +10,16 @@ import { deleteReservation } from "../apis/apis";
 export function MyReservationsTab() {
   const queryClient = useQueryClient();
 
+  // meeting rooms가 바뀌어도 room은 변하지 않는다. 리액트는 UI 컴포넌트다.
+  // post 쏘고 UI에 반영할게 없으면 그냥 그대로 잊어버리면된다.
+
   const rooms = queryClient.getQueryData<Room[]>(["meeting-rooms"]);
 
   return (
     <div className="space-y-4">
       <Suspense fallback={<div>Loading...</div>}>
-        <SuspenseQueries queries={[useMyReservations()]}>
-          {([{ data: reservations }]) => {
+        <SuspenseQuery {...myReservationsQueryOptions()}>
+          {({ data: reservations }) => {
             const isReservationsEmpty = reservations.length === 0;
 
             if (isReservationsEmpty) {
@@ -82,7 +85,7 @@ export function MyReservationsTab() {
               </>
             );
           }}
-        </SuspenseQueries>
+        </SuspenseQuery>
       </Suspense>
     </div>
   );
