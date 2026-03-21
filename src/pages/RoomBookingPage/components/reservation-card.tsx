@@ -4,30 +4,32 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, Clock, Trash2, Users } from "lucide-react";
 
 interface ReservationCardProps {
-  name: string;
+  title: string;
   date: string;
   startTime: string;
   endTime: string;
   capacity: number;
   equipments: string[];
   onCancel?: () => void;
+  disabled?: boolean;
 }
 
-export const ReservationCard = ({
-  name,
+export function ReservationCard({
+  title,
   date,
   startTime,
   endTime,
   capacity,
   equipments,
   onCancel,
-}: ReservationCardProps) => {
+  disabled = false,
+}: ReservationCardProps) {
   return (
     <Card>
       <CardContent>
         <div className="flex flex-col gap-4">
           <div className="space-y-2">
-            <h3 className="text-foreground text-lg font-semibold">{name}</h3>
+            <h3 className="text-foreground text-lg font-semibold">{title}</h3>
             <div className="text-muted-foreground flex flex-wrap items-center gap-4 text-sm">
               <span className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
@@ -51,7 +53,7 @@ export const ReservationCard = ({
             </div>
           </div>
 
-          <Button variant="destructive" size="sm" onClick={onCancel} disabled={false}>
+          <Button variant="destructive" size="sm" onClick={onCancel} disabled={disabled}>
             <Trash2 className="mr-1 h-4 w-4" />
             취소
           </Button>
@@ -59,4 +61,4 @@ export const ReservationCard = ({
       </CardContent>
     </Card>
   );
-};
+}

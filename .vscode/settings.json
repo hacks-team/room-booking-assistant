@@ -2,9 +2,6 @@
   "typescript.tsdk": ".yarn/sdks/typescript/lib",
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "editor.codeActionsOnSave": {
-    "source.fixAll": "explicit"
-  },
   "search.exclude": {
     "**/.yarn": true,
     "**/.pnp.*": true
@@ -12,5 +9,9 @@
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "[typescriptreact]": {
     "editor.defaultFormatter": "vscode.typescript-language-features"
-  }
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "rvest.vs-code-prettier-eslint"
+  },
+  "prettier.requireConfig": true
 }
